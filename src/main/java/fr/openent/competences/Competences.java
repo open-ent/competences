@@ -273,8 +273,15 @@ public class Competences extends BaseServer {
     @Override
     public void start(Promise<Void> startPromise) throws Exception {
       final Promise<Void> promise = Promise.promise();
-      super.start(promise);
-      promise.future().compose(e -> this.initCompetences()).onComplete(startPromise);
+      try {
+          super.start(promise);
+      } catch (Exception e) {
+          log.error("[Competences] super.start THREW: " + e.getClass().getName() + " - " + e.getMessage(), e);
+          throw e;
+      }
+      promise.future().compose(e -> this.initCompetences())
+        .onFailure(err -> log.error("[Competences] initCompetences FAILED", err))
+        .onComplete(startPromise);
     }
     private Future<Void> initCompetences() {
       COMPETENCES_SCHEMA = config.getString(DB_SCHEMA);
@@ -354,7 +361,7 @@ public class Competences extends BaseServer {
         futures.add(vertx.deployVerticle(CompetencesTransitionWorker.class, new DeploymentOptions().setConfig(config).setWorker(true)));
         log.info("WORKER : " + BulletinWorker.class.getSimpleName());
         futures.add(vertx.deployVerticle(BulletinWorker.class, new DeploymentOptions().setConfig(config).setWorker(true)));
-        return Future.all(futures);
+        return Future.all(futures).onFailure(err -> log.error("[Competences] Future.all workers FAILED", err));
       }).mapEmpty();
     }
 
