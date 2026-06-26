@@ -51,10 +51,13 @@ public class CompetencesController extends ControllerHelper {
             public void handle(UserInfos user) {
                 Utils.setLocale(I18n.acceptLanguage(request));
                 Utils.setDomain(getHost(request));
-                if(user.getType().equals("Teacher") || user.getType().equals("Personnel")) {
-                    renderView(request, null, "eval_teacher.html", null);
-                }else if(user.getType().equals("Student") || user.getType().equals("Relative")){
+                final String type = user.getType();
+                if("Student".equals(type) || "Relative".equals(type)){
                     renderView(request, null,  "eval_parents.html", null);
+                } else {
+                    // Teacher/Personnel + cas type null (ex. admin) : vue enseignant par défaut
+                    // (évite le NullPointerException sur getType() et la page blanche)
+                    renderView(request, null, "eval_teacher.html", null);
                 }
                 eventStore.createAndStoreEvent(EventStoresCompetences.ACCESS.toString(), request);
             }
