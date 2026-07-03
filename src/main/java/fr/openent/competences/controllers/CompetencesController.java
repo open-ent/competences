@@ -52,7 +52,14 @@ public class CompetencesController extends ControllerHelper {
                 Utils.setLocale(I18n.acceptLanguage(request));
                 Utils.setDomain(getHost(request));
                 final String type = user.getType();
-                if("Student".equals(type) || "Relative".equals(type)){
+                // CCTP 51C — bascule AngularJS/React. Défaut piloté par la conf `frontend-ui`
+                // (fallback "angular"), surchargée à la demande par `?ui=react|angular`.
+                final String uiParam = request.params().get("ui");
+                final String frontendUi = "react".equals(config.getString("frontend-ui", "angular")) ? "react" : "angular";
+                final String ui = ("react".equals(uiParam) || "angular".equals(uiParam)) ? uiParam : frontendUi;
+                if ("react".equals(ui)) {
+                    renderView(request, null, "eval_react.html", null);
+                } else if("Student".equals(type) || "Relative".equals(type)){
                     renderView(request, null,  "eval_parents.html", null);
                 } else {
                     // Teacher/Personnel + cas type null (ex. admin) : vue enseignant par défaut
