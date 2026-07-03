@@ -52,10 +52,11 @@ public class CompetencesController extends ControllerHelper {
                 Utils.setLocale(I18n.acceptLanguage(request));
                 Utils.setDomain(getHost(request));
                 final String type = user.getType();
-                // CCTP 51C — bascule AngularJS/React. Défaut piloté par la conf `frontend-ui`
-                // (fallback "angular"), surchargée à la demande par `?ui=react|angular`.
+                // CCTP 51C — React PAR DÉFAUT : l'IHM AngularJS ne rend aucun contenu pour l'enseignant
+                // (page vide). Le fallback Java est "react" (conf `frontend-ui` strippée par le springboard) ;
+                // repli AngularJS via `?ui=angular`.
                 final String uiParam = request.params().get("ui");
-                final String frontendUi = "react".equals(config.getString("frontend-ui", "angular")) ? "react" : "angular";
+                final String frontendUi = "angular".equals(config.getString("frontend-ui", "react")) ? "angular" : "react";
                 final String ui = ("react".equals(uiParam) || "angular".equals(uiParam)) ? uiParam : frontendUi;
                 if ("react".equals(ui)) {
                     renderView(request, null, "eval_react.html", null);

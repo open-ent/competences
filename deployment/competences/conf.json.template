@@ -4,7 +4,7 @@
         "main" : "fr.openent.competences.Competences",
         "port" : 8129,
         "app-name" : "Competences",
-        "frontend-ui" : "angular",
+        "frontend-ui" : "react",
     	"app-address" : "/competences",
     	"app-icon" : "${host}/competences/public/img/uni-competences.svg",
         "host": "${host}",
