@@ -28,3 +28,13 @@ export function levelColor(l: MaitriseLevel): string {
 export function sortLevels(levels: MaitriseLevel[]): MaitriseLevel[] {
   return [...levels].sort((a, b) => (a.ordre ?? 0) - (b.ordre ?? 0));
 }
+
+/**
+ * Valide une note saisie : nombre fini, comprise entre 0 et `diviseur` (barème).
+ * Sert de garde avant l'enregistrement d'une note d'élève.
+ */
+export function noteIsValid(value: string, diviseur: number): boolean {
+  if (value == null || value.trim() === '') return false;
+  const n = Number(value);
+  return Number.isFinite(n) && n >= 0 && n <= diviseur;
+}

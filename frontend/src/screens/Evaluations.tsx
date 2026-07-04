@@ -1,6 +1,7 @@
 import { useEdificeClient } from '@open-ent/react';
 import { useQuery } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
+import { Link } from 'react-router-dom';
 
 import { api } from '../api';
 
@@ -35,6 +36,7 @@ export function Evaluations() {
               <th>{t('competences.eval.name', { defaultValue: 'Évaluation' })}</th>
               <th>{t('competences.eval.subject', { defaultValue: 'Matière' })}</th>
               <th>{t('competences.eval.date', { defaultValue: 'Date' })}</th>
+              <th />
             </tr>
           </thead>
           <tbody>
@@ -43,6 +45,11 @@ export function Evaluations() {
                 <td>{d.name ?? `#${d.id}`}</td>
                 <td>{d.libelle_matiere ?? d.matiere ?? ''}</td>
                 <td>{fmtDate(d.date)}</td>
+                <td className="text-end">
+                  <Link to={`/evaluations/${d.id}/notes`} className="btn btn-link p-0">
+                    {t('competences.eval.notes', { defaultValue: 'Saisir les notes' })}
+                  </Link>
+                </td>
               </tr>
             ))}
           </tbody>

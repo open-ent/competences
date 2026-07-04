@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
 import type { MaitriseLevel } from './api';
-import { byName, byRank, levelColor, levelLabel, sortLevels } from './utils';
+import { byName, byRank, levelColor, levelLabel, noteIsValid, sortLevels } from './utils';
 
 describe('byRank', () => {
   it('trie par rank croissant', () => {
@@ -47,3 +47,18 @@ describe('sortLevels', () => {
     expect(src.map((l) => l.ordre)).toEqual([2, 1, 3]);
   });
 });
+
+describe('noteIsValid', () => {
+  it('accepte une note dans le barème', () => {
+    expect(noteIsValid('14', 20)).toBe(true);
+    expect(noteIsValid('0', 20)).toBe(true);
+    expect(noteIsValid('20', 20)).toBe(true);
+    expect(noteIsValid('12.5', 20)).toBe(true);
+  });
+  it('refuse hors barème, vide ou non numérique', () => {
+    expect(noteIsValid('21', 20)).toBe(false);
+    expect(noteIsValid('-1', 20)).toBe(false);
+    expect(noteIsValid('', 20)).toBe(false);
+    expect(noteIsValid('abc', 20)).toBe(false);
+  });
+})

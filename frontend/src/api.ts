@@ -66,6 +66,8 @@ export interface Devoir {
   matiere?: string;
   id_matiere?: string;
   libelle_matiere?: string;
+  id_groupe?: string;
+  diviseur?: number;
   is_evaluated?: boolean;
 }
 
@@ -73,4 +75,56 @@ export interface Devoir {
 export const getDevoirs = async (structureId: string): Promise<Devoir[]> =>
   json<Devoir[]>(await fetch(`/competences/devoirs?idEtablissement=${structureId}`, base)).catch(() => []);
 
-export const api = { getMaitriseLevels, getModalites, getMatieres, getDevoirs };
+// ── Saisie de notes (par devoir / par élève) ─────────────────────────────────────
+/** Élève d'une classe (annuaire directory). */
+export interface Eleve {
+  id: string;
+  displayName: string;
+}
+
+/** Note d'un élève à un devoir. */
+export interface Note {
+  id?: number;
+  id_eleve: string;
+  id_devoir?: number;
+  valeur?: string | number;
+}
+
+/** Élèves d'une classe (annuaire), triés par nom. */
+export const getClassStudents = async (classId: string): Promise<Eleve[]> =>
+  json<Array<{ id: string; firstName?: string; lastName?: string; displayName?: string }>>(
+    await fetch(`/directory/class/${classId}/users?type=Student`, base),
+  ).then((arr) =>
+    (arr ?? [])
+      .map((u) => ({ id: u.id, displayName: u.displayName ?? (`${u.lastName ?? ''} ${u.firstName ?? ''}`.trim() || u.id) }))
+      .sort((a, b) => a.displayName.localeCompare(b.displayName, 'fr', { sensitivity: 'base' })),
+  );
+
+/** Notes déjà saisies pour un devoir. */
+export const getDevoirNotes = async (devoirId: number): Promise<Note[]> =>
+  json<Note[]>(await fetch(`/competences/devoir/${devoirId}/notes`, base)).catch(() => []);
+
+function xsrfHeader(): Record<string, string> {
+  const m = typeof document !== 'undefined' ? document.cookie.match(/XSRF-TOKEN=([^;]+)/) : null;
+  return m ? { 'X-XSRF-TOKEN': decodeURIComponent(m[1]) } : {};
+}
+const mutHeaders = () => ({ 'Content-Type': 'application/json', ...xsrfHeader() });
+
+/** Crée une note (POST) ou la met à jour (PUT si `id` fourni). */
+export const saveNote = async (note: Note): Promise<void> => {
+  const isUpdate = note.id != null;
+  const res = await fetch(`/competences/note`, {
+    ...base,
+    method: isUpdate ? 'PUT' : 'POST',
+    headers: mutHeaders(),
+    body: JSON.stringify({
+      ...(isUpdate ? { id: note.id } : {}),
+      id_eleve: note.id_eleve,
+      id_devoir: note.id_devoir,
+      valeur: Number(note.valeur),
+    }),
+  });
+  if (!res.ok) throw new Error(String(res.status));
+};
+
+export const api = { getMaitriseLevels, getModalites, getMatieres, getDevoirs, getClassStudents, getDevoirNotes, saveNote };
