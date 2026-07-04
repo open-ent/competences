@@ -58,4 +58,19 @@ export const getMatieres = async (structureId: string): Promise<Matiere[]> => {
   return first.subjects.map((s) => ({ id: s.id, name: s.name, libelle: s.libelle, rank: s.rank }));
 };
 
-export const api = { getMaitriseLevels, getModalites, getMatieres };
+/** Un devoir/évaluation (côté liste). */
+export interface Devoir {
+  id: number;
+  name?: string;
+  date?: string;
+  matiere?: string;
+  id_matiere?: string;
+  libelle_matiere?: string;
+  is_evaluated?: boolean;
+}
+
+/** Liste des devoirs/évaluations de l'établissement. */
+export const getDevoirs = async (structureId: string): Promise<Devoir[]> =>
+  json<Devoir[]>(await fetch(`/competences/devoirs?idEtablissement=${structureId}`, base)).catch(() => []);
+
+export const api = { getMaitriseLevels, getModalites, getMatieres, getDevoirs };
