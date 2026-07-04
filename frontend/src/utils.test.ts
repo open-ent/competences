@@ -1,7 +1,18 @@
 import { describe, expect, it } from 'vitest';
 
-import type { MaitriseLevel } from './api';
-import { byName, byRank, levelColor, levelLabel, noteIsValid, sortLevels } from './utils';
+import type { DomaineNode, MaitriseLevel } from './api';
+import { byName, byRank, countDomaines, levelColor, levelLabel, noteIsValid, sortLevels } from './utils';
+
+describe('countDomaines', () => {
+  it('compte les nœuds de l’arbre récursivement', () => {
+    const arbre: DomaineNode[] = [
+      { id: 1, libelle: 'D1', domaines: [{ id: 10, libelle: 'D1.1' }, { id: 11, libelle: 'D1.2' }] },
+      { id: 2, libelle: 'D2', domaines: [] },
+    ];
+    expect(countDomaines(arbre)).toBe(4);
+    expect(countDomaines([])).toBe(0);
+  });
+});
 
 describe('byRank', () => {
   it('trie par rank croissant', () => {

@@ -2,6 +2,7 @@ import { RouteObject, createHashRouter } from 'react-router-dom';
 
 import { Dashboard } from './screens/Dashboard';
 import { Evaluations } from './screens/Evaluations';
+import { Referentiel } from './screens/Referentiel';
 import { Root } from './screens/Root';
 import { SaisieNotes } from './screens/SaisieNotes';
 
@@ -11,6 +12,7 @@ export const routes: RouteObject[] = [
     element: <Root />,
     children: [
       { index: true, element: <Dashboard /> },
+      { path: 'referentiel', element: <Referentiel /> },
       { path: 'evaluations', element: <Evaluations /> },
       { path: 'evaluations/:devoirId/notes', element: <SaisieNotes /> },
     ],

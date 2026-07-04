@@ -26,6 +26,7 @@ export function Root() {
           <div className="container py-16">
             <nav className="btn-group mb-16" aria-label="Navigation compétences">
               {tab('/', 'Référentiels', true)}
+              {tab('/referentiel', 'Arbre de compétences')}
               {tab('/evaluations', 'Évaluations')}
             </nav>
             <Outlet />

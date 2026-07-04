@@ -127,4 +127,34 @@ export const saveNote = async (note: Note): Promise<void> => {
   if (!res.ok) throw new Error(String(res.status));
 };
 
-export const api = { getMaitriseLevels, getModalites, getMatieres, getDevoirs, getClassStudents, getDevoirNotes, saveNote };
+// ── Arbre de compétences (référentiel par domaines) ──────────────────────────────
+/** Une classe/groupe de la structure (pour le sélecteur du référentiel). */
+export interface Classe {
+  id: string;
+  name: string;
+}
+
+/** Un domaine du référentiel (arbre récursif : chaque domaine porte ses sous-domaines). */
+export interface DomaineNode {
+  id: number;
+  libelle: string;
+  codification?: string;
+  evaluated?: boolean;
+  niveau?: number;
+  domaines?: DomaineNode[];
+}
+
+/** Classes de la structure (via viescolaire), triées par nom. */
+export const getClasses = async (structureId: string): Promise<Classe[]> =>
+  json<Array<{ id: string; name: string }>>(await fetch(`/viescolaire/classes?idEtablissement=${structureId}`, base))
+    .then((arr) => (arr ?? []).map((c) => ({ id: c.id, name: c.name })).sort((a, b) => a.name.localeCompare(b.name, 'fr', { sensitivity: 'base' })))
+    .catch(() => []);
+
+/** Arbre des domaines de compétences pour une classe (GET /competences/domaines). */
+export const getArbreDomaines = async (structureId: string, classId: string): Promise<DomaineNode[]> =>
+  json<DomaineNode[]>(await fetch(`/competences/domaines?idStructure=${structureId}&idClasse=${classId}`, base)).catch(() => []);
+
+export const api = {
+  getMaitriseLevels, getModalites, getMatieres, getDevoirs, getClassStudents, getDevoirNotes, saveNote,
+  getClasses, getArbreDomaines,
+};

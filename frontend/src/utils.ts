@@ -1,6 +1,11 @@
 /** Fonctions pures du module Compétences, testables. */
 
-import type { MaitriseLevel } from './api';
+import type { DomaineNode, MaitriseLevel } from './api';
+
+/** Nombre total de domaines dans l'arbre (nœud + descendants), récursif. */
+export function countDomaines(nodes: DomaineNode[]): number {
+  return (nodes ?? []).reduce((acc, n) => acc + 1 + countDomaines(n.domaines ?? []), 0);
+}
 
 /** Comparateur par `rank` numérique croissant (fallback 0). */
 export function byRank<T extends { rank?: number }>(a: T, b: T): number {
