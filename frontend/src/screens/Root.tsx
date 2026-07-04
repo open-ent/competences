@@ -27,6 +27,7 @@ export function Root() {
             <nav className="btn-group mb-16" aria-label="Navigation compétences">
               {tab('/', 'Référentiels', true)}
               {tab('/referentiel', 'Arbre de compétences')}
+              {tab('/releve', 'Relevé')}
               {tab('/evaluations', 'Évaluations')}
             </nav>
             <Outlet />

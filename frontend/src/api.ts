@@ -154,7 +154,54 @@ export const getClasses = async (structureId: string): Promise<Classe[]> =>
 export const getArbreDomaines = async (structureId: string, classId: string): Promise<DomaineNode[]> =>
   json<DomaineNode[]>(await fetch(`/competences/domaines?idStructure=${structureId}&idClasse=${classId}`, base)).catch(() => []);
 
+// ── Relevé de notes (par classe / matière / période) ─────────────────────────────
+/** Une période (trimestre/semestre) de la structure. */
+export interface Periode {
+  id: number;
+  type: number;
+  ordre?: number;
+  libelle?: string;
+}
+
+/** Un élève dans le relevé, avec ses moyennes. */
+export interface ReleveEleve {
+  id: string;
+  displayName: string;
+  moyenne?: string;
+  moyenneFinale?: string;
+  classeName?: string;
+}
+
+/** Relevé d'une classe/matière/période. */
+export interface Releve {
+  eleves: ReleveEleve[];
+  appreciationClasse: string;
+}
+
+/** Périodes de la structure (via viescolaire). */
+export const getPeriodes = async (structureId: string): Promise<Periode[]> =>
+  json<Array<{ id: number; type: number; ordre?: number }>>(await fetch(`/viescolaire/periodes?idEtablissement=${structureId}`, base))
+    .then((arr) => (arr ?? []).map((p) => ({ id: p.id, type: p.type, ordre: p.ordre })))
+    .catch(() => []);
+
+/**
+ * Relevé de notes (GET /competences/releve). Renvoie null si l'accès est refusé (401 :
+ * l'utilisateur n'enseigne pas la matière et n'est pas administrateur).
+ */
+export const getReleve = async (structureId: string, classId: string, matiereId: string, periodeId: number): Promise<Releve | null> => {
+  const url = `/competences/releve?idClasse=${classId}&idMatiere=${matiereId}&idEtablissement=${structureId}&idPeriode=${periodeId}&typeClasse=0`;
+  const res = await fetch(url, base);
+  if (res.status === 401) return null;
+  if (!res.ok) throw new Error(String(res.status));
+  const data = (await res.json()) as { eleves?: ReleveEleve[]; appreciation_classe?: { appreciation?: string } };
+  return {
+    eleves: (data.eleves ?? []).map((e) => ({ id: e.id, displayName: e.displayName, moyenne: e.moyenne, moyenneFinale: e.moyenneFinale, classeName: e.classeName })),
+    appreciationClasse: (data.appreciation_classe?.appreciation ?? '').trim(),
+  };
+};
+
 export const api = {
   getMaitriseLevels, getModalites, getMatieres, getDevoirs, getClassStudents, getDevoirNotes, saveNote,
   getClasses, getArbreDomaines,
+  getPeriodes, getReleve,
 };
