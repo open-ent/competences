@@ -53,8 +53,9 @@ public class CompetencesController extends ControllerHelper {
                 Utils.setDomain(getHost(request));
                 final String type = user.getType();
                 // CCTP 51C — React PAR DÉFAUT : l'IHM AngularJS ne rend aucun contenu pour l'enseignant
-                // (page vide). Le fallback Java est "react" (conf `frontend-ui` strippée par le springboard) ;
-                // repli AngularJS via `?ui=angular`.
+                // (page vide). L'IHM est choisie par la conf `frontend-ui` (bloc du module dans
+                // ent-core.yaml, alimentée par FRONTEND_UI_DEFAULT) ; fallback Java "react" si absente
+                // (launcher-next conserve la clé). Repli AngularJS via `?ui=angular`.
                 final String uiParam = request.params().get("ui");
                 final String frontendUi = "angular".equals(config.getString("frontend-ui", "react")) ? "angular" : "react";
                 final String ui = ("react".equals(uiParam) || "angular".equals(uiParam)) ? uiParam : frontendUi;
