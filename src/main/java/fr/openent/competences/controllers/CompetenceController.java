@@ -232,7 +232,7 @@ public class CompetenceController extends ControllerHelper {
                     if ((idComp != null && idEtablissement != null && valueToUpdate != null)
                             || "index".equals(fieldToUpdate) ) {
                         competencesService.update(idComp, idEtablissement, fieldToUpdate, valueToUpdate,
-                                defaultResponseHandler(request), idEns);
+                                notEmptyResponseHandler(request), idEns);
                     } else {
                         leftToResponse(request, new Either.Left<>("Nothing to update"));
                     }
