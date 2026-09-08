@@ -45,7 +45,7 @@ jobs:
       - uses: actions/setup-node@v7
         with:
           node-version: '20'
-      - uses: pnpm/action-setup@v4
+      - uses: pnpm/action-setup@v6
         with:
           version: 10
       - name: Build frontend React (sous-projet Vite frontend/)
@@ -63,7 +63,7 @@ jobs:
           cp -r dist/public/. ../src/main/resources/public/
 
       - name: Upload frontend assets
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: frontend-assets
           path: src/main/resources/
@@ -127,7 +127,9 @@ jobs:
         run: |
           ENTCORE_OPT=""
           if [ -n "$ENTCORE_VERSION" ]; then ENTCORE_OPT="-DentCoreVersion=$ENTCORE_VERSION"; fi
-          mvn clean package -DskipTests -B $ENTCORE_OPT -DbuildNumber=${GITHUB_SHA::8} -DscmBranch=${GITHUB_REF_NAME}
+          # -Dmaven.test.skip=true (pas -DskipTests) : évite la compilation des tests, qui crashe
+          # sous JDK 21 via maven-scala-plugin:2.15.2 hérité d'app-parent (testCompile scala).
+          mvn clean package -Dmaven.test.skip=true -B $ENTCORE_OPT -DbuildNumber=${GITHUB_SHA::8} -DscmBranch=${GITHUB_REF_NAME}
         env:
           ENTCORE_VERSION: ${{ github.event.inputs.entcore_version }}
 

@@ -29,8 +29,6 @@ import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
 
-import static jdk.nashorn.internal.runtime.regexp.joni.Config.log;
-
 
 /**
  * Created by lugana on 26/04/2018.
