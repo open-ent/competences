@@ -14,6 +14,6 @@ public class AccessIfMyStructure implements ResourcesProvider {
     public void authorize (HttpServerRequest request, Binding binding, UserInfos user, Handler<Boolean> handler) {
 
         String structureId = WorkflowActionUtils.getParamStructure(request);
-        handler.handle(structureId != null && user.getStructures().contains(structureId));
+        handler.handle(user.isADMC() || (structureId != null && user.getStructures().contains(structureId)));
     }
 }

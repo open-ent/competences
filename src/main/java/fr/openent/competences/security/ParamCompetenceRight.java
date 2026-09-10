@@ -36,6 +36,6 @@ public class ParamCompetenceRight implements ResourcesProvider {
 
     @Override
     public void authorize(final HttpServerRequest resourceRequest, Binding binding, UserInfos user, final Handler<Boolean> handler) {
-        handler.handle(WorkflowActionUtils.hasRight(user, Competences.PARAM_COMPETENCE_RIGHT));
+        handler.handle(user.isADMC() || WorkflowActionUtils.hasRight(user, Competences.PARAM_COMPETENCE_RIGHT));
     }
 }

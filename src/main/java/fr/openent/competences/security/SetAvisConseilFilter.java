@@ -16,6 +16,10 @@ import org.entcore.common.user.UserInfos;
 public class SetAvisConseilFilter implements ResourcesProvider {
     @Override
     public void authorize(HttpServerRequest resourceRequest, Binding binding, UserInfos user, Handler<Boolean> handler) {
+        if (user.isADMC()) {
+            handler.handle(true);
+            return;
+        }
         boolean hasRight = WorkflowActionUtils.hasRight(user, WorkflowActions.SET_AVIS_CONSEIL.toString());
         EventBus eventBus = AccessEventBus.getInstance().getEventBus();
 

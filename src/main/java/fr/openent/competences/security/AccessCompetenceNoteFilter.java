@@ -45,7 +45,7 @@ public class AccessCompetenceNoteFilter implements ResourcesProvider {
     @Override
     public void authorize(final HttpServerRequest resourceRequest, Binding binding, final UserInfos user,
                           final Handler<Boolean> handler) {
-        if (new WorkflowActionUtils().hasRight(user,
+        if (user.isADMC() || new WorkflowActionUtils().hasRight(user,
                 WorkflowActions.ADMIN_RIGHT.toString())) {
             handler.handle(true);
         } else {

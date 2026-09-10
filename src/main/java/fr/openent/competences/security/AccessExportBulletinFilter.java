@@ -17,6 +17,6 @@ public class AccessExportBulletinFilter  implements ResourcesProvider {
     @Override
     public void authorize(final HttpServerRequest resourceRequest, Binding binding, UserInfos user,
                           final Handler<Boolean> handler) {
-        handler.handle(WorkflowActionUtils.hasRight(user, Competences.CAN_ACCESS_EXPORT_BULLETIN));
+        handler.handle(user.isADMC() || WorkflowActionUtils.hasRight(user, Competences.CAN_ACCESS_EXPORT_BULLETIN));
     }
 }

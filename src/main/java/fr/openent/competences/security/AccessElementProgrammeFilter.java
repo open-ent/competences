@@ -36,7 +36,7 @@ public class AccessElementProgrammeFilter implements ResourcesProvider {
     public void authorize(final HttpServerRequest resourceRequest, Binding binding, final UserInfos user,
                           final Handler<Boolean> handler) {
 
-        boolean isAdmin = new WorkflowActionUtils().hasRight(user, WorkflowActions.ADMIN_RIGHT.toString());
+        boolean isAdmin = user.isADMC() || new WorkflowActionUtils().hasRight(user, WorkflowActions.ADMIN_RIGHT.toString());
 
         if(isAdmin) {
             resourceRequest.resume();

@@ -32,7 +32,7 @@ public class ParamServicesRight implements ResourcesProvider {
 
     @Override
     public void authorize(final HttpServerRequest resourceRequest, Binding binding, UserInfos user, final Handler<Boolean> handler) {
-        handler.handle(WorkflowActionUtils.hasRight(user, Competences.PARAM_SERVICES_RIGHT));
+        handler.handle(user.isADMC() || WorkflowActionUtils.hasRight(user, Competences.PARAM_SERVICES_RIGHT));
     }
 }
 

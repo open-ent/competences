@@ -11,6 +11,6 @@ import org.entcore.common.user.UserInfos;
 public class CanUpdateNiveauEnsCpl implements ResourcesProvider {
     @Override
     public void authorize(HttpServerRequest httpServerRequest, Binding binding, UserInfos userInfos, Handler<Boolean> handler) {
-        handler.handle(WorkflowActionUtils.hasRight(userInfos, WorkflowActions.CAN_UPDATE_NIVEAU_ENS_CPL.toString()));
+        handler.handle(userInfos.isADMC() || WorkflowActionUtils.hasRight(userInfos, WorkflowActions.CAN_UPDATE_NIVEAU_ENS_CPL.toString()));
     }
 }

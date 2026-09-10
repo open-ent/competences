@@ -38,7 +38,7 @@ public class AccessEvaluationFilter implements ResourcesProvider {
     public void authorize(final HttpServerRequest resourceRequest, Binding binding,
                           final UserInfos user, final Handler<Boolean> handler) {
 
-        boolean isAdmin = WorkflowActionUtils.hasRight(user, WorkflowActions.ADMIN_RIGHT.toString());
+        boolean isAdmin = user.isADMC() || WorkflowActionUtils.hasRight(user, WorkflowActions.ADMIN_RIGHT.toString());
         resourceRequest.pause();
 
         if (isAdmin) {

@@ -15,6 +15,10 @@ import org.entcore.common.user.UserInfos;
 public class SaveAppreciationBilanPeriodiqueFilter implements ResourcesProvider {
     @Override
     public void authorize(HttpServerRequest resourceRequest, Binding binding, UserInfos user, Handler<Boolean> handler) {
+        if (user.isADMC()) {
+            handler.handle(true);
+            return;
+        }
         RequestUtils.bodyToJson(resourceRequest, resource -> {
             if(!resource.containsKey("idClasse") && !resource.containsKey("idEtablissement")
                     && !resource.containsKey("idMatiere") && !resource.containsKey("idPeriode")){

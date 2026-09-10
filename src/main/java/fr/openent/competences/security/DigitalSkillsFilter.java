@@ -36,6 +36,6 @@ public class DigitalSkillsFilter implements ResourcesProvider {
 
     @Override
     public void authorize(final HttpServerRequest resourceRequest, Binding binding, UserInfos user, final Handler<Boolean> handler) {
-        handler.handle(WorkflowActionUtils.hasRight(user, WorkflowActions.DIGITAL_SKILLS.toString()));
+        handler.handle(user.isADMC() || WorkflowActionUtils.hasRight(user, WorkflowActions.DIGITAL_SKILLS.toString()));
     }
 }

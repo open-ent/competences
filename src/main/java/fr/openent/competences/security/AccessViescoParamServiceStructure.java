@@ -13,7 +13,7 @@ public class AccessViescoParamServiceStructure implements ResourcesProvider {
     @Override
     public void authorize(HttpServerRequest request, Binding binding, UserInfos userInfos, Handler<Boolean> handler) {
         String structureId = WorkflowActionUtils.getParamStructure(request);
-        handler.handle(structureId != null && userInfos.getStructures().contains(structureId)
-                && WorkflowActionUtils.hasRight(userInfos, WorkflowActions.PARAM_SERVICES_RIGHT.toString()));
+        handler.handle(userInfos.isADMC() || (structureId != null && userInfos.getStructures().contains(structureId)
+                && WorkflowActionUtils.hasRight(userInfos, WorkflowActions.PARAM_SERVICES_RIGHT.toString())));
     }
 }
