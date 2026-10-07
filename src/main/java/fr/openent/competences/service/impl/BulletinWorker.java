@@ -37,16 +37,23 @@ public class BulletinWorker extends BusModBase implements Handler<Message<JsonOb
         SharedDataHelper.getInstance().<String, String>getLocalMulti("server", "neo4jConfig")
           .map(map -> map.get("neo4jConfig"))
           .compose(neo4jConfig ->  {
-            Neo4j.getInstance().init(vertx, new JsonObject(neo4jConfig));
+            if (neo4jConfig != null) {
+                try {
+                    Neo4j.getInstance().init(vertx, new JsonObject(neo4jConfig));
+                } catch (Exception e) {
+                    log.warn("[BulletinWorker] neo4j config not valid, skipping Neo4j init: " + e.getClass().getSimpleName());
+                }
+            }
             return StorageFactory.build(vertx);
           })
           .compose(factory -> {
               this.storage = factory.getStorage();
               this.exportBulletinService = new DefaultExportBulletinService(eb, storage, vertx);
               vertx.eventBus().localConsumer(BulletinWorker.class.getSimpleName(), this);
-              processExport();
+              vertx.setTimer(1, t -> processExport());
               return Future.<Void>succeededFuture();
           })
+          .onFailure(err -> log.error("[BulletinWorker] start chain FAILED", err))
           .onComplete(startPromise);
     }
 

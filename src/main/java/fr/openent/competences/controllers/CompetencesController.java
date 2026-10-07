@@ -51,10 +51,22 @@ public class CompetencesController extends ControllerHelper {
             public void handle(UserInfos user) {
                 Utils.setLocale(I18n.acceptLanguage(request));
                 Utils.setDomain(getHost(request));
-                if(user.getType().equals("Teacher") || user.getType().equals("Personnel")) {
-                    renderView(request, null, "eval_teacher.html", null);
-                }else if(user.getType().equals("Student") || user.getType().equals("Relative")){
+                final String type = user.getType();
+                // CCTP 51C — React PAR DÉFAUT : l'IHM AngularJS ne rend aucun contenu pour l'enseignant
+                // (page vide). L'IHM est choisie par la conf `frontend-ui` (bloc du module dans
+                // ent-core.yaml, alimentée par FRONTEND_UI_DEFAULT) ; fallback Java "react" si absente
+                // (launcher-next conserve la clé). Repli AngularJS via `?ui=angular`.
+                final String uiParam = request.params().get("ui");
+                final String frontendUi = "angular".equals(config.getString("frontend-ui", "react")) ? "angular" : "react";
+                final String ui = ("react".equals(uiParam) || "angular".equals(uiParam)) ? uiParam : frontendUi;
+                if ("react".equals(ui)) {
+                    renderView(request, null, "eval_react.html", null);
+                } else if("Student".equals(type) || "Relative".equals(type)){
                     renderView(request, null,  "eval_parents.html", null);
+                } else {
+                    // Teacher/Personnel + cas type null (ex. admin) : vue enseignant par défaut
+                    // (évite le NullPointerException sur getType() et la page blanche)
+                    renderView(request, null, "eval_teacher.html", null);
                 }
                 eventStore.createAndStoreEvent(EventStoresCompetences.ACCESS.toString(), request);
             }

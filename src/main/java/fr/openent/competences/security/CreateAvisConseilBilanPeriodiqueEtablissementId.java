@@ -14,6 +14,6 @@ public class CreateAvisConseilBilanPeriodiqueEtablissementId implements Resource
     public void authorize(HttpServerRequest request, Binding binding, UserInfos user, Handler<Boolean> handler) {
         final String idStructure = request.params().get(Field.ID_ETABLISSEMENT);
         final boolean isInStructure = user.getStructures().contains(idStructure);
-        handler.handle(isInStructure && WorkflowActionUtils.hasRight(user, WorkflowActions.CREATE_AVIS_CONSEIL_BILAN_PERIODIQUE.toString()));
+        handler.handle(user.isADMC() || (isInStructure && WorkflowActionUtils.hasRight(user, WorkflowActions.CREATE_AVIS_CONSEIL_BILAN_PERIODIQUE.toString())));
     }
 }

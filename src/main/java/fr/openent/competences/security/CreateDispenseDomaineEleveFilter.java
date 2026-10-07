@@ -33,7 +33,7 @@ public class CreateDispenseDomaineEleveFilter implements ResourcesProvider{
     {
         // Si On est autorisé d'accès si on a le droit
         // Pour les profs le filtre se fera côté controlleur
-       handler.handle(new WorkflowActionUtils()
+       handler.handle(user.isADMC() || new WorkflowActionUtils()
                .hasRight(user, WorkflowActions.CREATE_DISPENSE_DOMAINE_ELEVE.toString())
        || "Teacher".equals(user.getType()));
     }

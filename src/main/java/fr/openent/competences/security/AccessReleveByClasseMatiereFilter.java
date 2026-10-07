@@ -75,7 +75,7 @@ public class AccessReleveByClasseMatiereFilter implements ResourcesProvider {
 
     private void authorizeAccess(final HttpServerRequest resourceRequest, UserInfos user, String idEtablissement,
                                  String idClasse, String idMatiere, Long idPeriode, final Handler<Boolean> handler) {
-        boolean isAdmin = WorkflowActionUtils.hasRight(user, WorkflowActions.ADMIN_RIGHT.toString());
+        boolean isAdmin = user.isADMC() || WorkflowActionUtils.hasRight(user, WorkflowActions.ADMIN_RIGHT.toString());
 
         if(isAdmin) {
             resourceRequest.resume();

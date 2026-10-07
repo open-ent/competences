@@ -38,7 +38,7 @@ public class AccessElementBilanPeriodiqueFilter implements ResourcesProvider {
                           final Handler<Boolean> handler) {
         FilterUserUtils userUtils = new FilterUserUtils(user, null);
 
-        if(new WorkflowActionUtils().hasRight(user, WorkflowActions.CREATE_ELEMENT_BILAN_PERIODIQUE.toString())) {
+        if(user.isADMC() || new WorkflowActionUtils().hasRight(user, WorkflowActions.CREATE_ELEMENT_BILAN_PERIODIQUE.toString())) {
             resourceRequest.resume();
             handler.handle(true);
         } else {

@@ -526,7 +526,7 @@ public class DefaultElementBilanPeriodiqueService extends SqlCrudService impleme
         Sql.getInstance().prepared(query.toString(), params, SqlResult.validResultHandler(handler));
     }
 
-    private static final String _elementBilanPerdiodiqueParcours = "3";
+    private static final int _elementBilanPerdiodiqueParcours = 3;
 
     @Override
     public void getClassesElementsBilanPeriodique (String idEtablissement, String idEnseignant,Handler<Either<String, JsonArray>> handler){

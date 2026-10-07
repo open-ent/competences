@@ -23,11 +23,22 @@ public class CompetencesTransitionWorker extends BusModBase implements Handler<M
     private TransitionService transitionService;
     @Override
     public void start() {
-        super.start();
-        Config configuration = new Config(config);
-        Sql sqlAdmin = Sql.createInstance(vertx.eventBus(), configuration.sqlAdminAdress());
-        this.transitionService = new DefaultTransitionService(sqlAdmin);
-        vertx.eventBus().localConsumer(CompetencesTransitionWorker.class.getSimpleName(), this);
+        log.info("[CompetencesTransitionWorker] start() called");
+        try {
+            super.start();
+            log.info("[CompetencesTransitionWorker] super.start() done");
+            Config configuration = new Config(config);
+            log.info("[CompetencesTransitionWorker] Config created");
+            Sql sqlAdmin = Sql.createInstance(vertx.eventBus(), configuration.sqlAdminAdress());
+            log.info("[CompetencesTransitionWorker] Sql created");
+            this.transitionService = new DefaultTransitionService(sqlAdmin);
+            log.info("[CompetencesTransitionWorker] TransitionService created");
+            vertx.eventBus().localConsumer(CompetencesTransitionWorker.class.getSimpleName(), this);
+            log.info("[CompetencesTransitionWorker] start() completed successfully");
+        } catch (Throwable t) {
+            log.error("[CompetencesTransitionWorker] start() FAILED with: " + t.getMessage(), t);
+            throw t;
+        }
     }
 
     @Override

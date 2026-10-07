@@ -16,6 +16,10 @@ import org.entcore.common.user.UserInfos;
 public class CanUpdateBFCSyntheseRight implements ResourcesProvider {
     @Override
     public void authorize(HttpServerRequest resourceRequest, Binding binding, UserInfos user, Handler<Boolean> handler) {
+        if (user.isADMC()) {
+            handler.handle(true);
+            return;
+        }
         RequestUtils.bodyToJson(resourceRequest, params -> {
             if(!params.containsKey("id_eleve") && !params.containsKey("id_structure")){
                 resourceRequest.resume();

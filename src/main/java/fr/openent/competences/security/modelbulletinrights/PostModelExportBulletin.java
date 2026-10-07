@@ -15,6 +15,10 @@ import static fr.openent.competences.security.utils.WorkflowActionUtils.hasRight
 public class PostModelExportBulletin implements ResourcesProvider {
     @Override
     public void authorize(HttpServerRequest request, Binding binding, UserInfos user, Handler<Boolean> handler) {
+        if (user.isADMC()) {
+            handler.handle(true);
+            return;
+        }
         // Verify if idStructure front equals idStructure user && user right export.bulletins.periodique
         RequestUtils.bodyToJson(request, body -> {
             String structureId = body.getString(Field.STRUCTUREID);

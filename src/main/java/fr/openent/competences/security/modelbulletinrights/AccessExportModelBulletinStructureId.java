@@ -13,6 +13,10 @@ import static fr.openent.competences.security.utils.WorkflowActionUtils.hasRight
 public class AccessExportModelBulletinStructureId implements ResourcesProvider {
     @Override
     public void authorize(HttpServerRequest request, Binding binding, UserInfos user, Handler<Boolean> handler) {
+        if (user.isADMC()) {
+            handler.handle(true);
+            return;
+        }
         String structureId = WorkflowActionUtils.getParamStructure(request);
         if(structureId == null){
             handler.handle(false);

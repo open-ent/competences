@@ -35,7 +35,7 @@ public class AccessAdminHeadTeacherFilter implements ResourcesProvider{
 
     @Override
     public void authorize(HttpServerRequest resourceRequest, Binding binding, UserInfos user, Handler<Boolean> handler) {
-        boolean isAdmin = WorkflowActionUtils.hasRight(user, WorkflowActions.ADMIN_RIGHT.toString());
+        boolean isAdmin = user.isADMC() || WorkflowActionUtils.hasRight(user, WorkflowActions.ADMIN_RIGHT.toString());
 
         if(isAdmin || "Personnel".equals(user.getType())){
             resourceRequest.resume();

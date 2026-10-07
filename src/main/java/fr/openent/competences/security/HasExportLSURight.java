@@ -11,6 +11,6 @@ import org.entcore.common.user.UserInfos;
 public class HasExportLSURight implements ResourcesProvider {
     @Override
     public void authorize(HttpServerRequest resourceRequest, Binding binding, UserInfos user, Handler<Boolean> handler) {
-        handler.handle(WorkflowActionUtils.hasRight(user, WorkflowActions.EXPORT_LSU.toString()));
+        handler.handle(user.isADMC() || WorkflowActionUtils.hasRight(user, WorkflowActions.EXPORT_LSU.toString()));
     }
 }

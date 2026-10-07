@@ -60,7 +60,7 @@ public class CreateOrUpdateAppreciationClasseFilter implements ResourcesProvider
                             }
 
 
-                            boolean isAdmin = new WorkflowActionUtils().hasRight(user, WorkflowActions.ADMIN_RIGHT.toString());
+                            boolean isAdmin = user.isADMC() || new WorkflowActionUtils().hasRight(user, WorkflowActions.ADMIN_RIGHT.toString());
                             if(isAdmin) {
                                 handler.handle(true);
                                 return;
