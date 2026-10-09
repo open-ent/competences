@@ -1,13 +1,20 @@
 import { EdificeClientProvider, EdificeThemeProvider } from '@open-ent/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
 import { RouterProvider } from 'react-router-dom';
 
 import { router } from './routes';
 
 import './i18n';
-import '@open-ent/bootstrap/dist/index.css';
-import './theme-fixes.css';
+import './index.css';
+
+// Le bootstrap openent n'est PAS bundlé : il est chargé au runtime via
+// <link href="/assets/themes/openent-bootstrap/index.css"> dans index.html (que Vite recopie dans
+// la vue backend), comme pour blog / wiki / video / agenda / exercices. C'est cette feuille
+// partagée qui porte les couleurs de marque par déploiement ; un
+// `import '@open-ent/bootstrap/dist/index.css'` casserait d'ailleurs le build
+// (`ENOENT /theme/brand.css`).
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -16,11 +23,13 @@ const queryClient = new QueryClient({
 });
 
 createRoot(document.getElementById('root')!).render(
-  <QueryClientProvider client={queryClient}>
-    <EdificeClientProvider params={{ app: 'competences' }}>
-      <EdificeThemeProvider>
-        <RouterProvider router={router} />
-      </EdificeThemeProvider>
-    </EdificeClientProvider>
-  </QueryClientProvider>,
+  <StrictMode>
+    <QueryClientProvider client={queryClient}>
+      <EdificeClientProvider params={{ app: 'competences' }}>
+        <EdificeThemeProvider>
+          <RouterProvider router={router} />
+        </EdificeThemeProvider>
+      </EdificeClientProvider>
+    </QueryClientProvider>
+  </StrictMode>,
 );

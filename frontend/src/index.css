@@ -1,0 +1,53 @@
+/* Mise en page des Compétences — uniquement ce que les utilitaires du socle n'expriment pas.
+   Toute couleur vient des jetons `--openent-*` du bootstrap chargé au runtime : le module suit
+   ainsi le thème de l'établissement sans feuille de styles parallèle. */
+
+/* Bandeau de bascule d'interface, posé en bas de l'écran sans recouvrir le contenu utile. */
+.competences-ui-switch {
+  position: sticky;
+  bottom: 1rem;
+  z-index: 10;
+  margin-top: 1.5rem;
+  background: var(--openent-white);
+}
+
+/* Menu latéral de l'enseignant : colonne fixe à gauche, au-dessus du contenu sur mobile. */
+.competences-layout {
+  display: grid;
+  grid-template-columns: 220px minmax(0, 1fr);
+  gap: 1.5rem;
+  align-items: start;
+}
+@media (max-width: 768px) {
+  .competences-layout {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+.competences-menu a {
+  display: block;
+  padding: 0.5rem 0.75rem;
+  border-radius: var(--openent-border-radius, 0.5rem);
+  color: var(--openent-gray-800);
+  text-decoration: none;
+}
+.competences-menu a:hover {
+  background: var(--openent-gray-200);
+}
+.competences-menu a.active {
+  background: var(--openent-primary-200);
+  color: var(--openent-primary-800);
+  font-weight: 600;
+}
+
+/* Listes défilantes des encarts de l'accueil (l'AngularJS les bornait à 220 px). */
+.competences-scroll {
+  max-height: 320px;
+  overflow: auto;
+}
+
+/* Résultats de la recherche d'élève, sous le champ. */
+.competences-suggestions {
+  max-height: 260px;
+  overflow: auto;
+}

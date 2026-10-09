@@ -1,25 +1,47 @@
-import { RouteObject, createHashRouter } from 'react-router-dom';
+import { Navigate, RouteObject, createHashRouter } from 'react-router-dom';
 
-import { Dashboard } from './screens/Dashboard';
-import { Evaluations } from './screens/Evaluations';
-import { Referentiel } from './screens/Referentiel';
-import { Releve } from './screens/Releve';
+import { DevoirsList } from './screens/DevoirsList';
+import { NotMigrated } from './screens/NotMigrated';
 import { Root } from './screens/Root';
-import { SaisieNotes } from './screens/SaisieNotes';
+import { TeacherHome } from './screens/TeacherHome';
 
+/**
+ * Les chemins sont ceux de l'IHM AngularJS enseignant, à l'identique (cf. `public/ts/teachers.ts`) :
+ * un lien copié dans l'une des deux interfaces reste valide dans l'autre.
+ *
+ * Seul l'espace ENSEIGNANT est servi par cette interface : le serveur garde élèves et parents sur
+ * l'AngularJS (`CompetencesController#view`), dont les routes portent les mêmes noms avec un autre
+ * sens (`/releve`, `/bulletin`…).
+ *
+ * Les écrans non encore portés tombent sur {@link NotMigrated}, qui renvoie vers l'ancienne IHM EN
+ * CONSERVANT le chemin et sa requête.
+ */
 export const routes: RouteObject[] = [
   {
     path: '/',
     element: <Root />,
     children: [
-      { index: true, element: <Dashboard /> },
-      { path: 'referentiel', element: <Referentiel /> },
-      { path: 'releve', element: <Releve /> },
-      { path: 'evaluations', element: <Evaluations /> },
-      { path: 'evaluations/:devoirId/notes', element: <SaisieNotes /> },
+      { index: true, element: <TeacherHome /> },
+      { path: 'devoirs/list', element: <DevoirsList /> },
+
+      // ── Écrans restant à porter ───────────────────────────────────────────
+      { path: 'devoir/create', element: <NotMigrated /> },
+      { path: 'devoir/:idDevoir/edit', element: <NotMigrated /> },
+      { path: 'devoir/:devoirId', element: <NotMigrated /> },
+      { path: 'releve', element: <NotMigrated /> },
+      { path: 'competences/eleve', element: <NotMigrated /> },
+      { path: 'competences/classe', element: <NotMigrated /> },
+      { path: 'projets', element: <NotMigrated /> },
+      { path: 'conseil/de/classe', element: <NotMigrated /> },
+      { path: 'export', element: <NotMigrated /> },
+      { path: 'disabled', element: <NotMigrated /> },
+      { path: 'bulletin', element: <NotMigrated /> },
+      { path: '*', element: <Navigate to="/" replace /> },
     ],
   },
 ];
 
-// Hash router : app servie sous `/competences` (route serveur unique), routage dans le fragment. CCTP 51C.
+// Hash router : l'app est servie sous `/competences` (route serveur unique `@Get("")`), le routage
+// se fait dans le fragment — c'est déjà la convention de l'IHM AngularJS, dont on reprend les
+// chemins.
 export const router = createHashRouter(routes);

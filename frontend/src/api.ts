@@ -1,207 +1,119 @@
-// Client REST du module Compétences (competences) — session ENT, même origine.
-// Incrément 1 : lecture seule des référentiels d'évaluation par compétences.
+// Client REST du module Compétences — session ENT, même origine.
 
-/** Niveau de l'échelle de maîtrise (référentiel central de l'évaluation par compétences). */
-export interface MaitriseLevel {
-  id?: number | null;
-  id_niveau?: number;
-  libelle?: string | null;
-  default_lib?: string;
-  ordre?: number;
-  couleur?: string | null;
-  default?: string;
-  lettre?: string | null;
-  cycle?: string;
-}
+import type {
+  Classe,
+  Devoir,
+  Eleve,
+  Enseignant,
+  Matiere,
+  Service,
+  TypeDevoir,
+  TypePeriode,
+  TypeSousMatiere,
+  UiPreference,
+  UserDetails,
+} from './types';
 
-/** Modalité d'enseignement (référentiel système). */
-export interface Modalite {
-  id: string;
-  libelle: string;
-}
-
-/** Matière évaluable (issue d'un modèle de matières de la structure). */
-export interface Matiere {
-  id: string;
-  name: string;
-  libelle?: string;
-  rank?: number;
-}
-
-interface MatiereModel {
-  title: string;
-  subjects: Array<{ id: string; name: string; libelle?: string; rank?: number }>;
-}
-
-async function json<T>(res: Response): Promise<T> {
-  if (!res.ok) throw new Error(String(res.status));
+/**
+ * Lecture JSON défensive. Une session expirée ne répond pas 401 mais **200 avec la page de
+ * connexion** en HTML : `res.ok` est vrai et c'est `JSON.parse` qui exploserait, loin de la cause.
+ * On vérifie donc le type de contenu avant de lire.
+ */
+async function getJson<T>(url: string): Promise<T> {
+  const res = await fetch(url, { credentials: 'include', headers: { Accept: 'application/json' } });
+  if (!res.ok) throw new Error(`${res.status} ${url}`);
+  const type = res.headers.get('content-type') ?? '';
+  if (!type.includes('json')) throw new Error(`réponse non JSON (session expirée ?) ${url}`);
   const text = await res.text();
   return (text ? JSON.parse(text) : null) as T;
 }
 
-const base = { credentials: 'include' as const };
-
-// ── Référentiels (lecture seule) ────────────────────────────────────────────────
-/** Échelle de maîtrise de l'établissement (peut être vide si non configurée). */
-export const getMaitriseLevels = async (structureId: string): Promise<MaitriseLevel[]> =>
-  json<MaitriseLevel[]>(await fetch(`/competences/maitrise/level/${structureId}`, base));
-
-/** Modalités d'enseignement (Tronc commun, Option…). */
-export const getModalites = async (structureId: string): Promise<Modalite[]> =>
-  json<Modalite[]>(await fetch(`/competences/modalites?idEtablissement=${structureId}`, base));
-
-/** Matières évaluables : matières du 1er modèle de matières de la structure. */
-export const getMatieres = async (structureId: string): Promise<Matiere[]> => {
-  const models = await json<MatiereModel[]>(await fetch(`/competences/matieres/models/${structureId}`, base));
-  const first = models?.[0];
-  if (!first) return [];
-  return first.subjects.map((s) => ({ id: s.id, name: s.name, libelle: s.libelle, rank: s.rank }));
-};
-
-/** Un devoir/évaluation (côté liste). */
-export interface Devoir {
-  id: number;
-  name?: string;
-  date?: string;
-  matiere?: string;
-  id_matiere?: string;
-  libelle_matiere?: string;
-  id_groupe?: string;
-  diviseur?: number;
-  is_evaluated?: boolean;
+function xsrfHeaders(): Record<string, string> {
+  const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+  const match = document.cookie.match(/XSRF-TOKEN=([^;]+)/);
+  if (match) headers['X-XSRF-TOKEN'] = decodeURIComponent(match[1]);
+  return headers;
 }
 
-/** Liste des devoirs/évaluations de l'établissement. */
-export const getDevoirs = async (structureId: string): Promise<Devoir[]> =>
-  json<Devoir[]>(await fetch(`/competences/devoirs?idEtablissement=${structureId}`, base)).catch(() => []);
+// ── Établissements ────────────────────────────────────────────────────────────
 
-// ── Saisie de notes (par devoir / par élève) ─────────────────────────────────────
-/** Élève d'une classe (annuaire directory). */
-export interface Eleve {
-  id: string;
-  displayName: string;
-}
+/** Établissements où le module « notes » est activé — l'AngularJS n'en montrait pas d'autres. */
+export const getActiveStructureIds = async (): Promise<string[]> =>
+  (
+    (await getJson<Array<{ id_etablissement: string }>>(
+      '/viescolaire/user/structures/actives?module=notes',
+    )) ?? []
+  ).map((s) => s.id_etablissement);
 
-/** Note d'un élève à un devoir. */
-export interface Note {
-  id?: number;
-  id_eleve: string;
-  id_devoir?: number;
-  valeur?: string | number;
-}
+// ── Référentiels d'un établissement ──────────────────────────────────────────
 
-/** Élèves d'une classe (annuaire), triés par nom. */
-export const getClassStudents = async (classId: string): Promise<Eleve[]> =>
-  json<Array<{ id: string; firstName?: string; lastName?: string; displayName?: string }>>(
-    await fetch(`/directory/class/${classId}/users?type=Student`, base),
-  ).then((arr) =>
-    (arr ?? [])
-      .map((u) => ({ id: u.id, displayName: u.displayName ?? (`${u.lastName ?? ''} ${u.firstName ?? ''}`.trim() || u.id) }))
-      .sort((a, b) => a.displayName.localeCompare(b.displayName, 'fr', { sensitivity: 'base' })),
+export const getClasses = async (structureId: string): Promise<Omit<Classe, 'services'>[]> =>
+  (await getJson<Omit<Classe, 'services'>[]>(`/viescolaire/classes?idEtablissement=${structureId}`)) ?? [];
+
+export const getServices = async (structureId: string): Promise<Service[]> =>
+  (await getJson<Service[]>(`/viescolaire/services?idEtablissement=${structureId}`)) ?? [];
+
+export const getMatieres = async (structureId: string): Promise<Matiere[]> =>
+  (await getJson<Matiere[]>(`/viescolaire/matieres/services-filter?idEtablissement=${structureId}`)) ?? [];
+
+export const getTypes = async (structureId: string): Promise<TypeDevoir[]> =>
+  (await getJson<TypeDevoir[]>(`/competences/types?idEtablissement=${structureId}`)) ?? [];
+
+/** Types de période, complétés de l'entrée « Année » (`id: null`) comme le faisait l'AngularJS. */
+export const getTypePeriodes = async (): Promise<TypePeriode[]> => [
+  ...((await getJson<TypePeriode[]>('/viescolaire/periodes/types')) ?? []),
+  { id: null, type: 0 },
+];
+
+export const getTypeSousMatieres = async (structureId: string): Promise<TypeSousMatiere[]> => {
+  const data = await getJson<TypeSousMatiere[] | { error: unknown }>(
+    `/viescolaire/types/sousmatieres?idStructure=${structureId}`,
   );
-
-/** Notes déjà saisies pour un devoir. */
-export const getDevoirNotes = async (devoirId: number): Promise<Note[]> =>
-  json<Note[]>(await fetch(`/competences/devoir/${devoirId}/notes`, base)).catch(() => []);
-
-function xsrfHeader(): Record<string, string> {
-  const m = typeof document !== 'undefined' ? document.cookie.match(/XSRF-TOKEN=([^;]+)/) : null;
-  return m ? { 'X-XSRF-TOKEN': decodeURIComponent(m[1]) } : {};
-}
-const mutHeaders = () => ({ 'Content-Type': 'application/json', ...xsrfHeader() });
-
-/** Crée une note (POST) ou la met à jour (PUT si `id` fourni). */
-export const saveNote = async (note: Note): Promise<void> => {
-  const isUpdate = note.id != null;
-  const res = await fetch(`/competences/note`, {
-    ...base,
-    method: isUpdate ? 'PUT' : 'POST',
-    headers: mutHeaders(),
-    body: JSON.stringify({
-      ...(isUpdate ? { id: note.id } : {}),
-      id_eleve: note.id_eleve,
-      id_devoir: note.id_devoir,
-      valeur: Number(note.valeur),
-    }),
-  });
-  if (!res.ok) throw new Error(String(res.status));
+  return Array.isArray(data) ? data : [];
 };
 
-// ── Arbre de compétences (référentiel par domaines) ──────────────────────────────
-/** Une classe/groupe de la structure (pour le sélecteur du référentiel). */
-export interface Classe {
-  id: string;
-  name: string;
-}
+export const getEnseignants = async (structureId: string): Promise<Enseignant[]> =>
+  (await getJson<Enseignant[]>(`/competences/user/list?profile=Teacher&structureId=${structureId}`)) ?? [];
 
-/** Un domaine du référentiel (arbre récursif : chaque domaine porte ses sous-domaines). */
-export interface DomaineNode {
-  id: number;
-  libelle: string;
-  codification?: string;
-  evaluated?: boolean;
-  niveau?: number;
-  domaines?: DomaineNode[];
-}
-
-/** Classes de la structure (via viescolaire), triées par nom. */
-export const getClasses = async (structureId: string): Promise<Classe[]> =>
-  json<Array<{ id: string; name: string }>>(await fetch(`/viescolaire/classes?idEtablissement=${structureId}`, base))
-    .then((arr) => (arr ?? []).map((c) => ({ id: c.id, name: c.name })).sort((a, b) => a.name.localeCompare(b.name, 'fr', { sensitivity: 'base' })))
-    .catch(() => []);
-
-/** Arbre des domaines de compétences pour une classe (GET /competences/domaines). */
-export const getArbreDomaines = async (structureId: string, classId: string): Promise<DomaineNode[]> =>
-  json<DomaineNode[]>(await fetch(`/competences/domaines?idStructure=${structureId}&idClasse=${classId}`, base)).catch(() => []);
-
-// ── Relevé de notes (par classe / matière / période) ─────────────────────────────
-/** Une période (trimestre/semestre) de la structure. */
-export interface Periode {
-  id: number;
-  type: number;
-  ordre?: number;
-  libelle?: string;
-}
-
-/** Un élève dans le relevé, avec ses moyennes. */
-export interface ReleveEleve {
-  id: string;
-  displayName: string;
-  moyenne?: string;
-  moyenneFinale?: string;
-  classeName?: string;
-}
-
-/** Relevé d'une classe/matière/période. */
-export interface Releve {
-  eleves: ReleveEleve[];
-  appreciationClasse: string;
-}
-
-/** Périodes de la structure (via viescolaire). */
-export const getPeriodes = async (structureId: string): Promise<Periode[]> =>
-  json<Array<{ id: number; type: number; ordre?: number }>>(await fetch(`/viescolaire/periodes?idEtablissement=${structureId}`, base))
-    .then((arr) => (arr ?? []).map((p) => ({ id: p.id, type: p.type, ordre: p.ordre })))
-    .catch(() => []);
+/** Classes dont l'usager est professeur principal (identifiants EXTERNES des classes). */
+export const getUserDetails = async (userId: string): Promise<UserDetails> =>
+  (await getJson<UserDetails>(`/directory/user/${userId}?manual-groups=true`)) ?? {};
 
 /**
- * Relevé de notes (GET /competences/releve). Renvoie null si l'accès est refusé (401 :
- * l'utilisateur n'enseigne pas la matière et n'est pas administrateur).
+ * Élèves de l'établissement. Un enseignant ne voit que ceux de ses classes : l'AngularJS passait
+ * alors chaque classe en paramètre ; un personnel de direction reçoit tout l'établissement.
  */
-export const getReleve = async (structureId: string, classId: string, matiereId: string, periodeId: number): Promise<Releve | null> => {
-  const url = `/competences/releve?idClasse=${classId}&idMatiere=${matiereId}&idEtablissement=${structureId}&idPeriode=${periodeId}&typeClasse=0`;
-  const res = await fetch(url, base);
-  if (res.status === 401) return null;
-  if (!res.ok) throw new Error(String(res.status));
-  const data = (await res.json()) as { eleves?: ReleveEleve[]; appreciation_classe?: { appreciation?: string } };
-  return {
-    eleves: (data.eleves ?? []).map((e) => ({ id: e.id, displayName: e.displayName, moyenne: e.moyenne, moyenneFinale: e.moyenneFinale, classeName: e.classeName })),
-    appreciationClasse: (data.appreciation_classe?.appreciation ?? '').trim(),
-  };
+export const getEleves = async (structureId: string, classIds?: string[]): Promise<Eleve[]> => {
+  const params = new URLSearchParams({ idEtablissement: structureId });
+  classIds?.forEach((id) => params.append('idClasse', id));
+  return (await getJson<Eleve[]>(`/viescolaire/classe/eleves?${params}`)) ?? [];
 };
 
-export const api = {
-  getMaitriseLevels, getModalites, getMatieres, getDevoirs, getClassStudents, getDevoirNotes, saveNote,
-  getClasses, getArbreDomaines,
-  getPeriodes, getReleve,
-};
+// ── Évaluations ──────────────────────────────────────────────────────────────
+
+export const getDevoirs = async (structureId: string): Promise<Devoir[]> =>
+  (await getJson<Devoir[]>(`/competences/devoirs?idEtablissement=${structureId}`)) ?? [];
+
+// ── Préférence d'interface ───────────────────────────────────────────────────
+
+const UI_PREFERENCE_URL = '/userbook/preference/competencesUi';
+
+/** L'enveloppe est `{ preference: "<json>" }` — une CHAÎNE, pas un objet. */
+export async function getUiPreference(): Promise<UiPreference> {
+  try {
+    const body = await getJson<{ preference?: string | null }>(UI_PREFERENCE_URL);
+    if (!body?.preference) return {};
+    return (JSON.parse(body.preference) as UiPreference) ?? {};
+  } catch {
+    return {};
+  }
+}
+
+export async function setUiPreference(preference: UiPreference): Promise<void> {
+  await fetch(UI_PREFERENCE_URL, {
+    credentials: 'include',
+    method: 'PUT',
+    headers: xsrfHeaders(),
+    body: JSON.stringify(preference),
+  });
+}

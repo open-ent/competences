@@ -35,6 +35,21 @@ buildNode () {
   esac
 }
 
+# IHM React (sous-projet frontend/) : ses fichiers portent une empreinte de contenu et la vue est
+# GÉNÉRÉE par Vite, qui y inscrit les bons noms. Elle ne peut donc pas venir de view-src/, que gulp
+# recopie — d'où cette étape séparée, APRÈS buildNode.
+buildReactFrontend () {
+  if [ ! -d ./frontend ] ; then return 0 ; fi
+  echo "Building React frontend (frontend/)..."
+  ( cd frontend \
+    && node scripts/refresh-open-ent-lock.mjs \
+    && pnpm install --no-frozen-lockfile \
+    && pnpm build ) || exit 1
+  mkdir -p ./src/main/resources/public ./src/main/resources/view
+  cp -r ./frontend/dist/public/. ./src/main/resources/public/
+  cp ./frontend/dist/index.html ./src/main/resources/view/competences-react.html
+}
+
 install() {
     docker compose run --rm maven mvn $MVN_OPTS clean install -U -DskipTests
 }
@@ -153,7 +168,10 @@ do
       install
       ;;
     install)
-      buildNode && install
+      buildNode && buildReactFrontend && install
+      ;;
+    buildReactFrontend)
+      buildReactFrontend
       ;;
     buildGulp)
       buildGulp

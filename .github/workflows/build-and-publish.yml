@@ -38,10 +38,15 @@ jobs:
             --user root \
             opendigitaleducation/node:10-alpine \
             sh -c "npm install --legacy-peer-deps && node_modules/gulp/bin/gulp.js build"
+          # Ce conteneur tourne en root (l'image Node 10 en a besoin pour son install) et laisse
+          # donc `src/main/resources/view/` lui appartenant. L'étape React qui suit y dépose
+          # `competences-react.html` : sans cette reprise de propriété, elle échouerait sur
+          # « Permission denied » APRÈS une construction Vite réussie.
+          sudo chown -R "$(id -u):$(id -g)" "${{ github.workspace }}"
 
-      # [B] IHM React (vue *-react.html -> /<module>/public/index.js) : sous-projet Vite
-      # frontend/ (Node 20), paquets prives @open-ent -> auth OPENENT_PACKAGES_TOKEN. La copie
-      # dans resources/public est embarquee par l'upload frontend-assets ci-dessous (fat-mod complet).
+      # [B] IHM React (vue competences-react.html) : sous-projet Vite frontend/ (Node 20),
+      # paquets prives @open-ent -> auth OPENENT_PACKAGES_TOKEN. La copie dans resources/ est
+      # embarquee par l'upload frontend-assets ci-dessous (fat-mod complet).
       - uses: actions/setup-node@v7
         with:
           node-version: '20'
@@ -59,8 +64,12 @@ jobs:
           node scripts/refresh-open-ent-lock.mjs
           pnpm install --no-frozen-lockfile
           pnpm build
-          mkdir -p ../src/main/resources/public
+          mkdir -p ../src/main/resources/public ../src/main/resources/view
           cp -r dist/public/. ../src/main/resources/public/
+          # La vue React est GÉNÉRÉE par Vite : ses fichiers portent une empreinte de contenu, dont
+          # seul le build connaît les noms. Elle ne vient donc pas de view-src/, et doit être
+          # copiée APRÈS l'étape gulp qui produit view/ depuis view-src/.
+          cp dist/index.html ../src/main/resources/view/competences-react.html
 
       - name: Upload frontend assets
         uses: actions/upload-artifact@v7

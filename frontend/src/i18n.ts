@@ -3,6 +3,8 @@ import Backend from 'i18next-http-backend';
 import { initReactI18next } from 'react-i18next';
 
 // Clés i18n ENT PLATES avec des points → keySeparator/nsSeparator désactivés.
+// `viescolaire` porte les libellés de période (`viescolaire.periode.N`), que l'AngularJS
+// trouvait dans le dictionnaire commun de la page.
 i18n
   .use(Backend)
   .use(initReactI18next)
@@ -13,7 +15,7 @@ i18n
       parse: (data: string) => JSON.parse(data),
     },
     defaultNS: 'common',
-    ns: ['common', 'competences'],
+    ns: ['common', 'competences', 'viescolaire'],
     fallbackLng: 'fr',
     lng: 'fr',
     keySeparator: false,
