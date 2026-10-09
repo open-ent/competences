@@ -3,6 +3,7 @@ import { Navigate, RouteObject, createHashRouter } from 'react-router-dom';
 import { DevoirsList } from './screens/DevoirsList';
 import { NotMigrated } from './screens/NotMigrated';
 import { Root } from './screens/Root';
+import { SaisieDevoir } from './screens/SaisieDevoir';
 import { TeacherHome } from './screens/TeacherHome';
 
 /**
@@ -23,11 +24,11 @@ export const routes: RouteObject[] = [
     children: [
       { index: true, element: <TeacherHome /> },
       { path: 'devoirs/list', element: <DevoirsList /> },
+      { path: 'devoir/:devoirId', element: <SaisieDevoir /> },
 
       // ── Écrans restant à porter ───────────────────────────────────────────
       { path: 'devoir/create', element: <NotMigrated /> },
       { path: 'devoir/:idDevoir/edit', element: <NotMigrated /> },
-      { path: 'devoir/:devoirId', element: <NotMigrated /> },
       { path: 'releve', element: <NotMigrated /> },
       { path: 'competences/eleve', element: <NotMigrated /> },
       { path: 'competences/classe', element: <NotMigrated /> },

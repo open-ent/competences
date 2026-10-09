@@ -32,6 +32,8 @@ export interface Classe {
   name: string;
   externalId?: string;
   type_groupe: TypeGroupe;
+  /** Cycle de la classe (`notes.rel_groupe_cycle`) : il choisit l'échelle de maîtrise. */
+  id_cycle?: number | null;
   /** Services de la classe, rattachés côté client comme le faisait `Structure.classes.sync`. */
   services: Service[] | null;
 }
@@ -133,4 +135,81 @@ export interface UiPreference {
   returnShown?: number;
   feedback?: string;
   feedbackAt?: string;
+}
+
+// ── Saisie d'une évaluation ──────────────────────────────────────────────────
+
+/** Annotation de l'établissement : ABS, DISP, NN, NR (`GET /competences/annotations`). */
+export interface Annotation {
+  id: number;
+  libelle: string;
+  libelle_court: string;
+}
+
+/** Niveau de maîtrise, défaut du cycle et personnalisation de l'établissement mêlés. */
+export interface MaitriseLevel {
+  id_cycle: number;
+  ordre: number;
+  /** Personnalisation (nulle si l'établissement garde le défaut). */
+  libelle: string | null;
+  couleur: string | null;
+  lettre: string | null;
+  default_lib: string | null;
+  /** Couleur par défaut, sous forme de NOM (`red`, `orange`…). */
+  default: string | null;
+}
+
+/** Une ligne de `GET /competences/devoir/:id/notes` : note, annotation et appréciation d'un élève. */
+export interface NoteDevoir {
+  id_eleve: string;
+  /** Identifiant de la note (nul si l'élève n'a qu'une annotation ou une appréciation). */
+  id: number | null;
+  /** En CHAÎNE (« 14.5 »). */
+  valeur: string | null;
+  id_annotation: number | null;
+  id_appreciation: number | null;
+  appreciation: string | null;
+}
+
+/** Une compétence évaluée par le devoir (`GET /competences/competences/devoir/:id`). */
+export interface CompetenceDevoir {
+  id_competence: number;
+  nom: string;
+  code_domaine: string | null;
+  index: number;
+}
+
+/** Niveau atteint par un élève sur une compétence du devoir ; −1 = non évaluée. */
+export interface CompetenceNote {
+  id: number;
+  id_eleve: string;
+  id_competence: number;
+  evaluation: number;
+}
+
+/** Élève d'une classe ou d'un groupe. */
+export interface EleveDevoir {
+  id: string;
+  firstName?: string;
+  lastName?: string;
+  displayName?: string;
+  deleteDate?: string | null;
+}
+
+/** Période d'une classe (`GET /viescolaire/periodes?idGroupe=`). */
+export interface PeriodeClasse {
+  id: number | null;
+  id_type: number;
+  type: number;
+  ordre: number;
+  timestamp_dt: string;
+  timestamp_fn: string;
+  date_fin_saisie: string | null;
+}
+
+/** Statistiques d'un devoir (`GET /competences/devoir/:id/moyenne`) — vide sans note. */
+export interface DevoirStats {
+  moyenne?: number;
+  noteMin?: number;
+  noteMax?: number;
 }
