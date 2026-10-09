@@ -53,8 +53,13 @@ export const getClasses = async (structureId: string): Promise<Omit<Classe, 'ser
 export const getServices = async (structureId: string): Promise<Service[]> =>
   (await getJson<Service[]>(`/viescolaire/services?idEtablissement=${structureId}`)) ?? [];
 
+/** Le serveur nomme les sous-matières `sous_matieres` ; l'AngularJS les renommait au chargement. */
 export const getMatieres = async (structureId: string): Promise<Matiere[]> =>
-  (await getJson<Matiere[]>(`/viescolaire/matieres/services-filter?idEtablissement=${structureId}`)) ?? [];
+  (
+    (await getJson<Array<Matiere & { sous_matieres?: Matiere['sousMatieres'] }>>(
+      `/viescolaire/matieres/services-filter?idEtablissement=${structureId}`,
+    )) ?? []
+  ).map(({ sous_matieres, ...matiere }) => ({ ...matiere, sousMatieres: matiere.sousMatieres ?? sous_matieres ?? [] }));
 
 export const getTypes = async (structureId: string): Promise<TypeDevoir[]> =>
   (await getJson<TypeDevoir[]>(`/competences/types?idEtablissement=${structureId}`)) ?? [];
