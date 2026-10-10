@@ -3,6 +3,7 @@ import { Navigate, RouteObject, createHashRouter } from 'react-router-dom';
 import { ConseilDeClasse } from './screens/ConseilDeClasse';
 import { DevoirFormScreen } from './screens/DevoirFormScreen';
 import { DevoirsList } from './screens/DevoirsList';
+import { Bulletins } from './screens/Bulletins';
 import { NotMigrated } from './screens/NotMigrated';
 import { Projets } from './screens/Projets';
 import { Releve } from './screens/Releve';
@@ -42,7 +43,7 @@ export const routes: RouteObject[] = [
       // ── Écrans restant à porter ───────────────────────────────────────────
       { path: 'export', element: <NotMigrated /> },
       { path: 'disabled', element: <NotMigrated /> },
-      { path: 'bulletin', element: <NotMigrated /> },
+      { path: 'bulletin', element: <Bulletins /> },
       { path: '*', element: <Navigate to="/" replace /> },
     ],
   },

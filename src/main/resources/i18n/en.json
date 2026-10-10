@@ -886,5 +886,10 @@
   "competences.react.conseil.empty": "Nothing to display for this student over the period: no average, comment or positioning.",
   "competences.react.conseil.moyenne.generale": "Overall average",
   "competences.react.conseil.calcule": "computed",
-  "competences.react.projets.none": "No element of this kind concerns you in this class."
+  "competences.react.projets.none": "No element of this kind concerns you in this class.",
+  "competences.react.bulletins.conflict": "Report cards are already being generated for:",
+  "competences.react.bulletins.error": "Report card generation failed.",
+  "competences.react.bulletins.no.classe": "No class for which you are head teacher or in charge.",
+  "competences.react.bulletins.mention": "Mention label",
+  "competences.react.bulletins.orientation": "Orientation opinion label"
 }

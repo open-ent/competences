@@ -476,3 +476,66 @@ export const saveProjetAppreciation = (
     id_classe: k.classe.id,
     externalid_classe: k.classe.externalId,
   });
+
+// ── Bulletins ────────────────────────────────────────────────────────────────
+
+/** Modèles de matières de l'établissement (ordre et libellés imprimés sur le bulletin). */
+export const getMatiereModels = async (structureId: string): Promise<Array<{ id?: number; title: string }>> =>
+  (await getJson<Array<{ id?: number; title: string }>>(`/competences/matieres/models/${structureId}`)) ?? [];
+
+/** Logo, signature et nom du chef d'établissement déjà enregistrés pour les bulletins. */
+export const getBulletinStructureInfos = async (structureId: string) =>
+  (await getJson<{ imgStructure?: { path?: string }; nameAndBrad?: { name?: string; path?: string } }>(
+    `/competences/images/and/infos/bulletins/structure/${structureId}`,
+  )) ?? {};
+
+/** 201 : des bulletins existent déjà pour ces élèves sur la période (archivés). */
+export async function bulletinsExist(students: Array<{ id: string; idClasse: string }>, idType: number, structureId: string): Promise<boolean> {
+  const res = await fetch('/competences/bulletins/exists', {
+    credentials: 'include',
+    method: 'POST',
+    headers: xsrfHeaders(),
+    body: JSON.stringify({ students, id_type: idType, idStructure: structureId }),
+  });
+  if (!res.ok) throw new Error(`${res.status} bulletins/exists`);
+  return res.status === 201;
+}
+
+/**
+ * Génère les bulletins d'une classe et renvoie le PDF. Un conflit de coefficients revient en 400
+ * avec la liste des élèves concernés, dans le corps — que l'on rend lisible.
+ */
+export async function generateBulletins(body: Record<string, unknown>): Promise<{ blob: Blob; filename: string } | { conflict: string[] }> {
+  const res = await fetch('/competences/export/bulletins', {
+    credentials: 'include',
+    method: 'POST',
+    headers: xsrfHeaders(),
+    body: JSON.stringify(body),
+  });
+  if (!res.ok) {
+    try {
+      const data = (await res.json()) as { eleves?: Array<{ lastName?: string; firstName?: string; name?: string }> };
+      if (data.eleves) return { conflict: data.eleves.map((e) => `${e.lastName ?? e.name ?? ''} ${e.firstName ?? ''}`.trim()) };
+    } catch {
+      /* corps illisible : erreur générique */
+    }
+    throw new Error(`${res.status} export/bulletins`);
+  }
+  const disposition = res.headers.get('content-disposition') ?? '';
+  const filename = (disposition.split('filename=')[1] ?? 'bulletins.pdf').replace(/"/g, '');
+  return { blob: await res.blob(), filename };
+}
+
+/** Préférence `competences` de l'usager, partagée avec l'AngularJS (`printBulletin` y vit). */
+export async function getCompetencesPreference(): Promise<Record<string, unknown>> {
+  try {
+    const body = await getJson<{ preference?: string | null }>('/userbook/preference/competences');
+    return body?.preference ? (JSON.parse(body.preference) as Record<string, unknown>) ?? {} : {};
+  } catch {
+    return {};
+  }
+}
+
+export async function setCompetencesPreference(value: Record<string, unknown>): Promise<void> {
+  await fetch('/userbook/preference/competences', { credentials: 'include', method: 'PUT', headers: xsrfHeaders(), body: JSON.stringify(value) });
+}

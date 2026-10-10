@@ -886,5 +886,10 @@
   "competences.react.conseil.empty": "Rien à afficher pour cet élève sur la période : ni moyenne, ni appréciation, ni positionnement.",
   "competences.react.conseil.moyenne.generale": "Moyenne générale",
   "competences.react.conseil.calcule": "calculé",
-  "competences.react.projets.none": "Aucun élément de ce type ne vous concerne dans cette classe."
+  "competences.react.projets.none": "Aucun élément de ce type ne vous concerne dans cette classe.",
+  "competences.react.bulletins.conflict": "Des bulletins sont déjà en cours de génération pour :",
+  "competences.react.bulletins.error": "La génération des bulletins a échoué.",
+  "competences.react.bulletins.no.classe": "Aucune classe dont vous êtes professeur principal ou dont vous assurez le suivi.",
+  "competences.react.bulletins.mention": "Libellé de la mention",
+  "competences.react.bulletins.orientation": "Libellé de l'avis d'orientation"
 }
