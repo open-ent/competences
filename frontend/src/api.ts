@@ -8,6 +8,7 @@ import type {
   Devoir,
   DevoirStats,
   EleveDevoir,
+  Enseignement,
   MaitriseLevel,
   NoteDevoir,
   PeriodeClasse,
@@ -238,3 +239,23 @@ export const switchApprecVisibility = (devoirId: number) => send('PUT', `/compet
 
 /** « Marquer l'évaluation comme terminée » : l'avancement passe à 100 %. */
 export const finishDevoir = (devoirId: number) => send('PUT', `/competences/devoir/finish?idDevoir=${devoirId}`);
+
+// ── Création et modification d'une évaluation ────────────────────────────────
+
+/** Référentiel du cycle de la classe : enseignements → compétences → sous-compétences. */
+export const getEnseignements = async (classId: string): Promise<Enseignement[]> =>
+  (await getJson<Enseignement[]>(`/competences/enseignements?idClasse=${classId}`)) ?? [];
+
+/** Ce qui est déjà saisi sur une évaluation : `TypeEvalSkill` (id = compétence) et `TypeEvalNum`. */
+export const getEvaluationInformation = async (devoirId: number): Promise<Array<{ id: string; typeeval: string }>> =>
+  (await getJson<Array<{ id: string; typeeval: string }>>(`/competences/devoirs/evaluations/information?idDevoir=${devoirId}`)) ?? [];
+
+/** Compétences de la dernière évaluation créée par l'usager. */
+export const getLastDevoirCompetences = async (): Promise<CompetenceDevoir[]> =>
+  (await getJson<CompetenceDevoir[]>('/competences/competences/last/devoir/')) ?? [];
+
+/** ⚠ Le serveur lit `owner`, absent de son schéma JSON : sans lui, 400. */
+export const createDevoir = (body: Record<string, unknown>) => send<{ id: number }>('POST', '/competences/devoir', body);
+
+export const updateDevoir = (devoirId: number, body: Record<string, unknown>) =>
+  send('PUT', `/competences/devoir?idDevoir=${devoirId}`, body);

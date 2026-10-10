@@ -811,7 +811,7 @@
   "you.have": "Vous avez sélectionné ",
   "évaluation.domaine.bfc.nonevalue": "(domaine non évalué)",
   "competences.switch.invitation.title": "Essayez la nouvelle version des évaluations",
-  "competences.switch.invitation.body": "Elle reprend l'habillage commun aux autres applications. L'accueil et la liste des évaluations y sont disponibles ; le reste s'ouvre encore dans cette version.",
+  "competences.switch.invitation.body": "Elle reprend l'habillage commun aux autres applications. L'accueil, la liste des évaluations, leur création et la saisie des notes et des compétences y sont disponibles ; le reste s'ouvre encore dans cette version.",
   "competences.switch.invitation.later": "Plus tard",
   "competences.switch.invitation.try": "Essayer",
   "competences.switch.return.title": "Vous utilisez la nouvelle version des évaluations.",
@@ -862,5 +862,14 @@
   "competences.react.saisie.no.student": "Aucun élève n'est évalué sur cette période.",
   "competences.react.saisie.no.levels": "Aucune échelle de maîtrise n'est paramétrée pour cet établissement : les compétences ne peuvent pas être évaluées.",
   "competences.react.saisie.finished": "Avancement porté à 100 %.",
-  "competences.react.cancel": "Annuler"
+  "competences.react.cancel": "Annuler",
+  "competences.react.form.tab.informations": "Informations",
+  "competences.react.form.required": "* champ obligatoire · ** sans note, au moins une compétence est requise",
+  "competences.react.form.up": "Monter « [[name]] »",
+  "competences.react.form.down": "Descendre « [[name]] »",
+  "competences.react.form.remove": "Retirer « [[name]] »",
+  "competences.react.form.take.last": "Reprendre les compétences de ma dernière évaluation",
+  "competences.react.form.enseignements": "Filtrer par enseignement",
+  "competences.react.form.no.competence": "Aucune compétence ne correspond.",
+  "competences.react.form.understood": "Compris"
 }

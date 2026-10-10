@@ -811,7 +811,7 @@
   "you.have": "You have selected ",
   "évaluation.domaine.bfc.nonevalue": "(domain not assessed)",
   "competences.switch.invitation.title": "Try the new version of assessments",
-  "competences.switch.invitation.body": "It follows the look shared by the other applications. The home page and the list of assessments are available there; everything else still opens in this version.",
+  "competences.switch.invitation.body": "It follows the look shared by the other applications. The home page, the list of assessments, creating them and entering marks and skills are available there; everything else still opens in this version.",
   "competences.switch.invitation.later": "Later",
   "competences.switch.invitation.try": "Try it",
   "competences.switch.return.title": "You are using the new version of assessments.",
@@ -862,5 +862,14 @@
   "competences.react.saisie.no.student": "No student is assessed over this period.",
   "competences.react.saisie.no.levels": "No mastery scale is set up for this school: skills cannot be assessed.",
   "competences.react.saisie.finished": "Progress set to 100%.",
-  "competences.react.cancel": "Cancel"
+  "competences.react.cancel": "Cancel",
+  "competences.react.form.tab.informations": "Information",
+  "competences.react.form.required": "* required field · ** without a mark, at least one skill is required",
+  "competences.react.form.up": "Move “[[name]]” up",
+  "competences.react.form.down": "Move “[[name]]” down",
+  "competences.react.form.remove": "Remove “[[name]]”",
+  "competences.react.form.take.last": "Reuse the skills of my last assessment",
+  "competences.react.form.enseignements": "Filter by subject area",
+  "competences.react.form.no.competence": "No matching skill.",
+  "competences.react.form.understood": "Got it"
 }

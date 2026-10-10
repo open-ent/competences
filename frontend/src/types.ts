@@ -55,6 +55,9 @@ export interface Matiere {
 export interface TypeDevoir {
   id: number;
   nom: string;
+  default_type?: boolean;
+  /** Évaluation formative : sans effet sur la moyenne, coefficient 0 par défaut. */
+  formative?: boolean;
 }
 
 /** Type de période (trimestre, semestre), avec l'entrée « Année » d'identifiant `null`. */
@@ -212,4 +215,24 @@ export interface DevoirStats {
   moyenne?: number;
   noteMin?: number;
   noteMax?: number;
+}
+
+// ── Création d'une évaluation ────────────────────────────────────────────────
+
+/** Compétence du référentiel, telle que `GET /competences/enseignements` la renvoie. */
+export interface CompetenceRef {
+  id: number;
+  nom: string;
+  code_domaine: string | null;
+  masque?: boolean;
+  id_cycle: number;
+  /** Sous-compétences (seulement au premier niveau). */
+  competences_2?: CompetenceRef[];
+}
+
+/** Un enseignement et ses compétences, pour le cycle de la classe. */
+export interface Enseignement {
+  id: number;
+  nom: string;
+  competences_1?: CompetenceRef[];
 }
