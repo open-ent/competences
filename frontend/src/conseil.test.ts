@@ -56,3 +56,72 @@ describe('suivi des acquis', () => {
     expect(moyenneGenerale(['NN'])).toBe('NN');
   });
 });
+
+import { avisOfType, avisSynthesePeriode, conseilRights, evenementsHistorique } from './conseil';
+
+describe('avis et synthèses', () => {
+  const avis = [
+    { id: 1, libelle: 'Félicitations', type_avis: 1, active: true, id_etablissement: null },
+    { id: 2, libelle: 'Ancien', type_avis: 1, active: false, id_etablissement: null },
+    { id: 5, libelle: 'Admis en 2nde', type_avis: 2, active: true, id_etablissement: null },
+  ];
+
+  it('avis actifs par type', () => {
+    expect(avisOfType(avis, 1).map((a) => a.id)).toEqual([1]);
+    expect(avisOfType(avis, 2).map((a) => a.id)).toEqual([5]);
+  });
+
+  it('synthèse et avis de la période, vides à défaut', () => {
+    const data = {
+      libelleAvis: avis,
+      syntheses: [{ id_typeperiode: 1, synthese: 'Bon trimestre' }],
+      avisConseil: [{ id_periode: 1, id_avis_conseil_bilan: 1 }],
+      avisOrientation: [{ id_periode: 2, id_avis_conseil_bilan: 5 }],
+    };
+    expect(avisSynthesePeriode(data, 1)).toEqual({ synthese: 'Bon trimestre', avisConseil: 1, avisOrientation: null });
+    expect(avisSynthesePeriode(data, 2)).toEqual({ synthese: '', avisConseil: null, avisOrientation: 5 });
+  });
+});
+
+describe('vie scolaire', () => {
+  it('une ligne par période, des zéros à défaut, puis le total de l’année', () => {
+    const lignes = evenementsHistorique([{ id_periode: 1, retard: 2, abs_just: 1 }, { id_periode: 9, retard: 7 }], [1, 2]);
+    expect(lignes).toEqual([
+      { id_periode: 1, retard: 2, abs_just: 1, abs_non_just: 0, abs_totale_heure: 0 },
+      { id_periode: 2, retard: 0, abs_just: 0, abs_non_just: 0, abs_totale_heure: 0 },
+      { id_periode: null, retard: 2, abs_just: 1, abs_non_just: 0, abs_totale_heure: 0 },
+    ]);
+  });
+});
+
+describe('droits du conseil', () => {
+  const none = {
+    canSaveAppMatierePosiBilanPeriodique: false,
+    canSaisiSyntheseBilanPeriodique: false,
+    canUpdateAvisConseilOrientation: false,
+    canUpdateAppreciations: false,
+    canSaisiAppreciationCPE: false,
+    canUpdateRetardAndAbsence: false,
+  };
+  const all = Object.fromEntries(Object.keys(none).map((k) => [k, true])) as typeof none;
+
+  it('la direction saisit sans droit dédié, sauf vie scolaire et appréciation du CPE', () => {
+    expect(conseilRights({ published: false, chefOrHeadTeacher: true, hasService: false, workflow: none })).toEqual({
+      suiviAcquis: true,
+      synthese: true,
+      avis: true,
+      appreciationsProjets: true,
+      appreciationCPE: false,
+      vieScolaire: false,
+    });
+  });
+
+  it('le suivi des acquis exige aussi un service évaluable dans la classe', () => {
+    expect(conseilRights({ published: false, chefOrHeadTeacher: false, hasService: false, workflow: all }).suiviAcquis).toBe(false);
+    expect(conseilRights({ published: false, chefOrHeadTeacher: false, hasService: true, workflow: all }).suiviAcquis).toBe(true);
+  });
+
+  it('tout est figé une fois les bulletins publiés', () => {
+    expect(Object.values(conseilRights({ published: true, chefOrHeadTeacher: true, hasService: true, workflow: all })).some(Boolean)).toBe(false);
+  });
+});

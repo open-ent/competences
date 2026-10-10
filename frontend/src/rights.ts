@@ -14,6 +14,12 @@ export const WORKFLOW = {
   exportBulletins: 'fr.openent.competences.controllers.ExportPDFController|exportBulletins',
   /** Appréciation, positionnement et éléments du programme depuis le conseil de classe. */
   canSaveAppMatierePosiBilanPeriodique: 'fr.openent.competences.controllers.NoteController|saveAppreciationMatiereAndPositionnementWorfklow',
+  /** Conseil de classe : synthèse, avis, appréciations des projets, vie scolaire. */
+  canSaisiSyntheseBilanPeriodique: 'fr.openent.competences.controllers.BilanPeriodiqueController|syntheseBilanPeriodiqueWorkflow',
+  canUpdateAvisConseilOrientation: 'fr.openent.competences.controllers.BilanPeriodiqueController|setAvisWorfklow',
+  canUpdateAppreciations: 'fr.openent.competences.controllers.ElementBilanPeriodiqueController|createAppreciationBilanPeriodique',
+  canSaisiAppreciationCPE: 'fr.openent.competences.controllers.BilanPeriodiqueController|createOrUpdateAppreciationCPE',
+  canUpdateRetardAndAbsence: 'fr.openent.competences.controllers.UtilsController|insertRetardOrAbscence',
   /** Poser le niveau final d'une compétence dans le suivi d'un élève. */
   saveCompetenceNiveauFinal: 'fr.openent.competences.controllers.CompetenceNoteController|saveCompetenceNiveauFinal',
   /** Droit `viescolaire.adminChefEtab` : personnel de direction (`Utils.isChefEtabOrHeadTeacher`). */

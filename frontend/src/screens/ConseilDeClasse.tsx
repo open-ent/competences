@@ -4,11 +4,12 @@ import { useEffect, useId, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
 import * as api from '../api';
-import { acquisRow, isEmptyRow, moyenneGenerale } from '../conseil';
+import { acquisRow, conseilRights, isEmptyRow, moyenneGenerale } from '../conseil';
+import { AvisPanel, ProjetsEleve, Synthese, VieScolaire } from '../features/ConseilTabs';
 import { ClasseSelect, StructureSelect, usePeriodeLabel } from '../features/Filters';
 import { AppreciationInput } from '../features/SaisieInputs';
 import { formatMoyenne, MAX_APPRECIATION } from '../releve';
-import { isChefEtabOrHeadTeacher, sortClasses } from '../rules';
+import { isChefEtabOrHeadTeacher, sortClasses, userHasService } from '../rules';
 import { levelsForCycle, sortEleves } from '../saisie';
 import { useStructure, useStructureData, useViewer } from '../structure';
 import type { PeriodeClasse } from '../types';
@@ -19,8 +20,9 @@ import type { PeriodeClasse } from '../types';
  * l'appréciation, les moyennes de l'élève et de la classe, le positionnement et le taux de
  * compétences validées.
  *
- * Les autres onglets (projets, vie scolaire, graphiques, bilan de fin de cycle, compétences
- * numériques) restent dans la version précédente.
+ * Onglets portés : suivi des acquis (avec la synthèse), projets, vie scolaire ; avis du conseil
+ * et d'orientation à côté. Graphiques, bilan de fin de cycle et compétences numériques renvoient
+ * vers la version précédente.
  */
 export function ConseilDeClasse() {
   const { t } = useTranslation(['competences', 'viescolaire', 'common']);
@@ -137,13 +139,77 @@ export function ConseilDeClasse() {
               {index < eleves.length - 1 ? nameOf(eleves[index + 1]) : ''} →
             </Button>
           </div>
-          <Alert type="info">
-            {t('competences.react.conseil.other.tabs')}{' '}
-            <a href="/competences?ui=angular#/conseil/de/classe">{t('competences.switch.notmigrated.action')}</a>
-          </Alert>
-          <SuiviAcquis key={`${eleve.id}-${periode.id_type}`} classe={classe} periode={periode} eleveId={eleve.id} />
+          <ConseilEleve key={`${eleve.id}-${periode.id_type}`} classe={classe} periode={periode} periodes={periodes} eleveId={eleve.id} />
         </>
       )}
+    </div>
+  );
+}
+
+type ConseilTab = 'acquis' | 'projets' | 'vie';
+const TABS: Array<{ id: ConseilTab; label: string }> = [
+  { id: 'acquis', label: 'evaluation.bilan.periodique.suivi.acquis' },
+  { id: 'projets', label: 'evaluation.bilan.periodique.projets' },
+  { id: 'vie', label: 'evaluation.bilan.periodique.vie.scolaire' },
+];
+/** Onglets non portés : ils ouvrent l'AngularJS sur le conseil de classe. */
+const OLD_TABS = ['evaluation.bilan.periodique.graphiques', 'evaluations.bilan.fin.cycle.title'];
+
+/** Un élève au conseil : onglets, avis, et droits de saisie de la période. */
+function ConseilEleve({
+  classe,
+  periode,
+  periodes,
+  eleveId,
+}: {
+  classe: NonNullable<ReturnType<typeof useStructureData>['classes'][number]>;
+  periode: PeriodeClasse;
+  periodes: PeriodeClasse[];
+  eleveId: string;
+}) {
+  const { t } = useTranslation(['competences', 'viescolaire', 'common']);
+  const { rights } = useStructure();
+  const viewer = useViewer()!;
+  const [tab, setTab] = useState<ConseilTab>('acquis');
+  const can = conseilRights({
+    published: !!periode.publication_bulletin,
+    chefOrHeadTeacher: isChefEtabOrHeadTeacher(viewer, classe),
+    hasService: userHasService(classe, viewer),
+    workflow: rights,
+  });
+  const ctx = { classe, periode, periodes, eleveId };
+
+  return (
+    <div className="d-flex flex-column gap-16">
+      {periode.publication_bulletin && <Alert type="info">{t('competences.react.conseil.published')}</Alert>}
+      <AvisPanel {...ctx} editable={can.avis} />
+      <div className="d-flex flex-wrap gap-8 align-items-center" role="tablist" aria-label={t('evaluations.conseil.de.classe')}>
+        {TABS.map((x) => (
+          <button
+            key={x.id}
+            type="button"
+            role="tab"
+            aria-selected={tab === x.id}
+            className={`btn ${tab === x.id ? 'btn-primary' : 'btn-outline-primary'}`}
+            onClick={() => setTab(x.id)}
+          >
+            {t(x.label)}
+          </button>
+        ))}
+        {OLD_TABS.map((label) => (
+          <a key={label} className="btn btn-outline-secondary" href="/competences?ui=angular#/conseil/de/classe" title={t('competences.switch.notmigrated.action')}>
+            {t(label)} ↗
+          </a>
+        ))}
+      </div>
+      {tab === 'acquis' && (
+        <>
+          <SuiviAcquis classe={classe} periode={periode} eleveId={eleveId} editable={can.suiviAcquis} />
+          <Synthese {...ctx} editable={can.synthese} />
+        </>
+      )}
+      {tab === 'projets' && <ProjetsEleve {...ctx} editable={can.appreciationsProjets} />}
+      {tab === 'vie' && <VieScolaire {...ctx} canEdit={can.vieScolaire} canAppreciation={can.appreciationCPE} />}
     </div>
   );
 }
@@ -152,15 +218,16 @@ function SuiviAcquis({
   classe,
   periode,
   eleveId,
+  editable,
 }: {
   classe: NonNullable<ReturnType<typeof useStructureData>['classes'][number]>;
   periode: PeriodeClasse;
   eleveId: string;
+  editable: boolean;
 }) {
   const { t } = useTranslation(['competences', 'viescolaire', 'common']);
   const queryClient = useQueryClient();
-  const { structureId, rights } = useStructure();
-  const viewer = useViewer()!;
+  const { structureId } = useStructure();
   const [error, setError] = useState(false);
   const [confirmClear, setConfirmClear] = useState<{ matiereId: string } | null>(null);
   const key = ['competences', structureId, 'conseil', classe.id, eleveId, periode.id_type];
@@ -182,8 +249,6 @@ function SuiviAcquis({
     .map((raw) => ({ raw, row: acquisRow(raw, periode.id_type, table) }))
     .filter(({ raw, row }) => !isEmptyRow(row, raw, periode.id_type))
     .sort((a, b) => (a.raw.rank ?? 0) - (b.raw.rank ?? 0));
-  const editable = rights.canSaveAppMatierePosiBilanPeriodique;
-  const locked = !!periode.date_fin_saisie && viewer.today > periode.date_fin_saisie.slice(0, 10) && !isChefEtabOrHeadTeacher(viewer, classe);
 
   const run = async (write: () => Promise<unknown>) => {
     try {
@@ -203,7 +268,6 @@ function SuiviAcquis({
     <section className="card p-16 d-flex flex-column gap-12">
       <h3 className="h5 mb-0">{t('evaluation.bilan.periodique.suivi.acquis')}</h3>
       {error && <Alert type="danger">{t('competences.react.saisie.save.error')}</Alert>}
-      {editable && locked && <Alert type="warning">{t('end.saisie')}</Alert>}
       <div className="table-responsive">
         <table className="table align-middle mb-0">
           <thead>
@@ -227,9 +291,9 @@ function SuiviAcquis({
                 <td>
                   {editable ? (
                     <AppreciationInput
+                      disabled={false}
                       label={`${t('bilan.perodique.elements.programme.travailles')} ${row.libelle}`}
                       value={row.elementsProgramme}
-                      disabled={locked}
                       multiline
                       maxLength={MAX_APPRECIATION}
                       onCommit={async (value) => {
@@ -243,9 +307,9 @@ function SuiviAcquis({
                 <td>
                   {editable ? (
                     <AppreciationInput
+                      disabled={false}
                       label={`${t('viescolaire.utils.appreciation')} ${row.libelle}`}
                       value={row.appreciation}
-                      disabled={locked}
                       multiline
                       maxLength={MAX_APPRECIATION}
                       onCommit={async (value) => {
@@ -269,7 +333,7 @@ function SuiviAcquis({
                     value={row.positionnement}
                     auto={row.positionnementAuto}
                     nbLevels={nbLevels}
-                    disabled={!editable || locked}
+                    disabled={!editable}
                     onChange={(value) =>
                       run(() => api.savePositionnement({ structureId, classeId: classe.id, matiereId: row.idMatiere, periode: periode.id_type }, eleveId, value, value === row.positionnementAuto))
                     }

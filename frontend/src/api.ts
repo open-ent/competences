@@ -1,6 +1,6 @@
 // Client REST du module Compétences — session ENT, même origine.
 import type { NoteWrite } from './saisie';
-import type { AcquisRaw } from './conseil';
+import type { AcquisRaw, AvisSyntheses, Evenement } from './conseil';
 import { parseLsuErrors } from './lsu';
 import type { ArchiveYears, LsuErrors, StsFile, UnheededStudent } from './lsu';
 import { mergeDevoirs } from './family';
@@ -452,8 +452,11 @@ export const getProjetClasses = async (structureId: string): Promise<Array<Omit<
   (await getJson<Array<Omit<Classe, 'services'>>>(`/competences/elementsBilanPeriodique/classes?idStructure=${structureId}`)) ?? [];
 
 /** Éléments de la classe sur lesquels l'usager intervient. */
-export const getProjetElements = async (structureId: string, classeId: string, enseignantId: string): Promise<ProjetElement[]> =>
-  (await getJson<ProjetElement[]>(`/competences/elementsBilanPeriodique?idEtablissement=${structureId}&idClasse=${classeId}&idEnseignant=${enseignantId}`)) ?? [];
+/** Éléments du bilan périodique de la classe ; avec un enseignant, ceux où il intervient seulement. */
+export const getProjetElements = async (structureId: string, classeId: string, enseignantId?: string): Promise<ProjetElement[]> =>
+  (await getJson<ProjetElement[]>(
+    `/competences/elementsBilanPeriodique?idEtablissement=${structureId}&idClasse=${classeId}${enseignantId ? `&idEnseignant=${enseignantId}` : ''}`,
+  )) ?? [];
 
 export const getProjetTeachers = async (structureId: string, classeId: string, ids: number[]): Promise<Map<number, string[]>> => {
   if (ids.length === 0) return new Map();
@@ -679,3 +682,62 @@ export async function seeBulletin(body: {
   if (!res.ok) throw new Error(`${res.status} see/bulletins`);
   return new Blob([await res.arrayBuffer()], { type: 'application/pdf' });
 }
+
+// ── Conseil de classe : synthèse, avis, projets de l'élève, vie scolaire ──────
+
+/** Avis proposés, synthèses et avis de l'élève sur toutes les périodes (une seule lecture). */
+export const getAvisSyntheses = async (structureId: string, eleveId: string): Promise<AvisSyntheses> =>
+  (await getJson<AvisSyntheses>(`/competences/bilan/periodique/datas/avis/synthses?idEtablissement=${structureId}&idEleve=${eleveId}`)) ?? {
+    libelleAvis: [],
+    syntheses: [],
+    avisConseil: [],
+    avisOrientation: [],
+  };
+
+export const saveSynthese = (k: { structureId: string; classeId: string; eleveId: string; periode: number }, synthese: string) =>
+  send('POST', '/competences/syntheseBilanPeriodique', {
+    synthese,
+    id_eleve: k.eleveId,
+    id_typePeriode: k.periode,
+    id_structure: k.structureId,
+    id_classe: k.classeId,
+  });
+
+/** Avis du conseil (`conseil`) ou d'orientation (`orientation`) ; `null` le retire. */
+export const saveAvis = (kind: 'conseil' | 'orientation', k: { structureId: string; eleveId: string; periode: number }, idAvis: number | null) =>
+  idAvis === null
+    ? send('DELETE', `/competences/avis/${kind}?id_eleve=${k.eleveId}&id_periode=${k.periode}&id_structure=${k.structureId}`)
+    : send('POST', `/competences/avis/${kind}`, { id_avis_conseil_bilan: idAvis, id_eleve: k.eleveId, id_periode: k.periode, id_structure: k.structureId });
+
+/** Nouvel avis personnalisé de l'établissement : type 1 = conseil, 2 = orientation. */
+export const createAvis = async (structureId: string, type: 1 | 2, libelle: string): Promise<number> =>
+  (await send<{ id: number }>('POST', '/competences/avis/bilan/periodique', { libelle, type_avis: type, id_etablissement: structureId }))!.id;
+
+export const getAppreciationCPE = async (structureId: string, eleveId: string, periode: number): Promise<string> =>
+  (await getJson<{ appreciation?: string }>(`/competences/appreciation/CPE/bilan/periodique?id_eleve=${eleveId}&id_periode=${periode}&id_etablissement=${structureId}`))
+    ?.appreciation ?? '';
+
+export const saveAppreciationCPE = (eleveId: string, periode: number, appreciation: string) =>
+  send('POST', '/competences/appreciation/CPE/bilan/periodique', { appreciation, id_eleve: eleveId, id_periode: periode });
+
+/** Retards et absences de l'élève, par période. */
+export const getEvenements = async (structureId: string, classeId: string, eleveId: string): Promise<Evenement[]> =>
+  (await getJson<Evenement[]>(`/competences/eleve/evenements/${eleveId}?idEtablissement=${structureId}&idClasse=${classeId}`)) ?? [];
+
+export const saveEvenement = (eleveId: string, periode: number, colonne: 'retard' | 'abs_just' | 'abs_non_just' | 'abs_totale_heure', value: number) =>
+  send('POST', '/competences/eleve/evenements', { idEleve: eleveId, colonne, idPeriode: periode, value });
+
+/** Appréciation d'un élève sur un projet, saisie depuis le conseil de classe. */
+export const saveAppreciationElementConseil = (
+  k: { structureId: string; classe: Pick<Classe, 'id' | 'externalId'>; periode: number; elementId: number; eleveId: string },
+  appreciation: string,
+) =>
+  send('POST', '/competences/elementsAppreciationBilanPeriodique?type=eleve-bilanPeriodique', {
+    id_periode: k.periode,
+    id_element: k.elementId,
+    id_etablissement: k.structureId,
+    id_eleve: k.eleveId,
+    appreciation,
+    id_classe: k.classe.id,
+    externalid_classe: k.classe.externalId,
+  });

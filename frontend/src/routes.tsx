@@ -49,7 +49,9 @@ export const routes: RouteObject[] = [
 
       // ── Écrans restant à porter ───────────────────────────────────────────
       { path: 'export', element: <Exports /> },
-      { path: 'disabled', element: <NotMigrated /> },
+      // L'AngularJS y ouvrait un gabarit inexistant (`disabled_structure`) quand aucun établissement
+      // n'était actif ; ici, chaque écran signale lui-même l'absence d'établissement.
+      { path: 'disabled', element: <Navigate to="/" replace /> },
       { path: 'bulletin', element: <Bulletins /> },
       { path: '*', element: <Navigate to="/" replace /> },
     ],

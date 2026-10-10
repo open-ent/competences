@@ -908,5 +908,8 @@
   "competences.react.famille.previous": "Évaluation précédente",
   "competences.react.famille.next": "Évaluation suivante",
   "competences.react.famille.no.cycle": "La classe de l'élève n'est rattachée à aucun cycle : le bilan de compétences n'est pas disponible.",
-  "competences.switch.invitation.body.famille": "Elle reprend l'habillage commun aux autres applications : évaluations, relevé de notes, bilan de compétences et bulletins y sont disponibles."
+  "competences.switch.invitation.body.famille": "Elle reprend l'habillage commun aux autres applications : évaluations, relevé de notes, bilan de compétences et bulletins y sont disponibles.",
+  "competences.react.conseil.avis.custom": "— Personnalisé —",
+  "competences.react.conseil.published": "Les bulletins de cette période sont publiés : le conseil de classe n'est plus modifiable.",
+  "competences.react.conseil.from.presences": "Retards et absences remontés du module Présences : ils se corrigent là-bas."
 }
