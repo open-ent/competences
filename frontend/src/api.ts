@@ -3,6 +3,8 @@ import type { NoteWrite } from './saisie';
 import type { AcquisRaw } from './conseil';
 import { parseLsuErrors } from './lsu';
 import type { ArchiveYears, LsuErrors, StsFile, UnheededStudent } from './lsu';
+import { mergeDevoirs } from './family';
+import type { FamilyChild, FamilyDevoir, StudentAnnotation, StudentCompetence, StudentDevoir } from './family';
 import type { ProjetAppreciation, ProjetElement } from './projets';
 import type { ClasseEvaluation, CompetenceEvaluation, Conversion } from './suivi';
 
@@ -359,9 +361,14 @@ export const getDomainesEleve = async (classId: string, eleveId: string, idCycle
   (await getJson<DomaineSuivi[]>(`/competences/domaines?idClasse=${classId}&idEleve=${eleveId}&idCycle=${idCycle}`)) ?? [];
 
 /** Évaluations de compétences d'un élève ; sans période, toute l'année. */
-export const getCompetenceNotesEleve = async (eleveId: string, idCycle: number, periode: number | null): Promise<CompetenceEvaluation[]> =>
+export const getCompetenceNotesEleve = async (
+  eleveId: string,
+  idCycle: number,
+  periode: number | null,
+  isCycle = false,
+): Promise<CompetenceEvaluation[]> =>
   (await getJson<CompetenceEvaluation[]>(
-    `/competences/competence/notes/eleve/${eleveId}?idCycle=${idCycle}${periode !== null ? `&idPeriode=${periode}` : ''}&isCycle=false`,
+    `/competences/competence/notes/eleve/${eleveId}?idCycle=${idCycle}${periode !== null ? `&idPeriode=${periode}` : ''}&isCycle=${isCycle}`,
   )) ?? [];
 
 export const getConversionTable = async (structureId: string, classId: string): Promise<Conversion[]> =>
@@ -604,3 +611,41 @@ export async function downloadArchives(structureId: string, type: 'bfc' | 'bulle
   const disposition = res.headers.get('content-disposition') ?? '';
   return { status: 200 as const, blob: await res.blob(), filename: (disposition.split('filename=')[1] ?? `archives-${type}.zip`).replace(/"/g, '') };
 }
+
+// ── Espace des élèves et des parents ──────────────────────────────────────────
+
+/** Les enfants du parent connecté, avec leur classe et leur établissement. */
+export const getEnfants = async (): Promise<FamilyChild[]> => (await getJson<FamilyChild[]>('/competences/enfants')) ?? [];
+
+/**
+ * Les devoirs de l'élève sur l'année : notés, évalués par compétences ou annotés — trois lectures
+ * fusionnées comme le faisait l'AngularJS (`Evaluations.devoirs.sync`).
+ */
+export async function getStudentDevoirs(child: FamilyChild): Promise<FamilyDevoir[]> {
+  const [devoirs, competences, annotations] = await Promise.all([
+    getJson<StudentDevoir[]>(`/competences/devoirs?idEtablissement=${child.idStructure}&forStudentReleve=true&idEleve=${child.id}`),
+    getJson<StudentCompetence[]>(`/viescolaire/competences/eleve?idEleve=${child.id}&idClasse=${child.idClasse}`),
+    getJson<StudentAnnotation[]>(`/viescolaire/annotations/eleve?idEleve=${child.id}&idClasse=${child.idClasse}`),
+  ]);
+  return mergeDevoirs(devoirs ?? [], competences ?? [], annotations ?? []);
+}
+
+/** Matières de l'établissement de l'élève, avec leurs sous-matières. */
+export const getStudentMatieres = async (structureId: string) =>
+  (await getJson<Array<{ id: string; name: string; sous_matieres?: Array<{ id_type_sousmatiere: number; libelle: string }> }>>(
+    `/viescolaire/matieres/services-filter?idEtablissement=${structureId}`,
+  )) ?? [];
+
+/** Enseignants de l'établissement de l'élève : de quoi nommer l'auteur d'un devoir. */
+export const getStudentTeachers = async (structureId: string) =>
+  (await getJson<Array<{ id: string; displayName: string }>>(`/competences/user/list?profile=Teacher&structureId=${structureId}`)) ?? [];
+
+/** Appréciation de l'enseignant sur le devoir, quand il l'a rendue visible. */
+export const getDevoirAppreciation = async (devoirId: number, eleveId: string): Promise<string | null> =>
+  (await getJson<Array<{ appreciation?: string }>>(`/viescolaire/appreciation/devoir/${devoirId}/eleve/${eleveId}`))?.[0]?.appreciation ?? null;
+
+/** Cycles qu'a suivis l'élève, le plus récent d'abord comme le renvoie le serveur. */
+export const getCyclesEleve = async (eleveId: string) =>
+  (await getJson<Array<{ id_cycle: number; libelle: string }>>(`/competences/cycles/eleve/${eleveId}`)) ?? [];
+
+export const studentPictureUrl = (child: FamilyChild) => `/viescolaire/structures/${child.idStructure}/students/${child.id}/picture`;

@@ -901,5 +901,11 @@
   "competences.react.lsu.ignored": "Ignored",
   "competences.react.lsu.errors.hint": "Tick “Ignored” to leave a student out of the export, for each period, then continue.",
   "competences.react.lsu.ignore.all": "Ignore all these students",
-  "competences.react.archives.current.year": "(Current year)"
+  "competences.react.archives.current.year": "(Current year)",
+  "competences.react.famille.no.child": "No student linked to your account is enrolled in a class.",
+  "competences.react.famille.all.subjects": "All subjects",
+  "competences.react.famille.children": "Choose a child",
+  "competences.react.famille.previous": "Previous assessment",
+  "competences.react.famille.next": "Next assessment",
+  "competences.react.famille.no.cycle": "The student's class is not linked to any cycle: the skills report is not available."
 }

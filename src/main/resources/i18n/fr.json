@@ -901,5 +901,11 @@
   "competences.react.lsu.ignored": "Ignoré",
   "competences.react.lsu.errors.hint": "Cochez « Ignoré » pour écarter un élève de l'export, sur chaque période, puis continuez.",
   "competences.react.lsu.ignore.all": "Ignorer tous ces élèves",
-  "competences.react.archives.current.year": "(Année en cours)"
+  "competences.react.archives.current.year": "(Année en cours)",
+  "competences.react.famille.no.child": "Aucun élève rattaché à votre compte n'est inscrit dans une classe.",
+  "competences.react.famille.all.subjects": "Toutes les matières",
+  "competences.react.famille.children": "Choix de l'enfant",
+  "competences.react.famille.previous": "Évaluation précédente",
+  "competences.react.famille.next": "Évaluation suivante",
+  "competences.react.famille.no.cycle": "La classe de l'élève n'est rattachée à aucun cycle : le bilan de compétences n'est pas disponible."
 }
