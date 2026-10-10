@@ -2,8 +2,10 @@ import { Navigate, RouteObject, createHashRouter } from 'react-router-dom';
 
 import { ConseilDeClasse } from './screens/ConseilDeClasse';
 import { FamilyBilan } from './screens/FamilyBilan';
+import { FamilyBulletin } from './screens/FamilyBulletin';
 import { FamilyDevoir } from './screens/FamilyDevoir';
 import { FamilyDevoirs, FamilyHome } from './screens/FamilyDevoirs';
+import { FamilyReleve } from './screens/FamilyReleve';
 import { FamilyRoot } from './screens/FamilyRoot';
 import { DevoirFormScreen } from './screens/DevoirFormScreen';
 import { DevoirsList } from './screens/DevoirsList';
@@ -67,10 +69,9 @@ export const familyRoutes: RouteObject[] = [
       { path: 'devoirs/list', element: <FamilyDevoirs /> },
       { path: 'devoir/:devoirId', element: <FamilyDevoir /> },
       { path: 'competences/eleve', element: <FamilyBilan /> },
-
-      // ── Écrans restant à porter ───────────────────────────────────────────
-      { path: 'releve', element: <NotMigrated /> },
-      { path: 'bulletin', element: <NotMigrated /> },
+      { path: 'releve', element: <FamilyReleve /> },
+      { path: 'bulletin', element: <FamilyBulletin /> },
+      // Retiré du menu de l'AngularJS, encore joignable par lien.
       { path: 'bilan/periodique', element: <NotMigrated /> },
       { path: '*', element: <Navigate to="/" replace /> },
     ],

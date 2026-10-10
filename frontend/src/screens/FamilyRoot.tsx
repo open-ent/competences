@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next';
 import { NavLink, Outlet } from 'react-router-dom';
 
 import * as api from '../api';
+import { UiSwitchBanner } from '../features/UiSwitchBanner';
 import { FamilyProvider, useFamily } from '../familyContext';
 
 const FAMILY_MENU = [
@@ -30,6 +31,7 @@ export function FamilyRoot() {
             <Outlet />
           </main>
         </div>
+        <UiSwitchBanner />
       </Layout>
     </FamilyProvider>
   );

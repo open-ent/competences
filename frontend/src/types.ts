@@ -7,6 +7,9 @@
 export interface SecondTeacher {
   second_teacher_id: string;
   subject_id?: string;
+  /** Titulaire du service et classe concernée (sous-matières du relevé de l'élève). */
+  main_teacher_id?: string;
+  group_id?: string;
   /** Remplaçant seulement : bornes de la suppléance (date ISO). */
   start_date?: string;
   entered_end_date?: string;
@@ -210,6 +213,8 @@ export interface PeriodeClasse {
   timestamp_dt: string;
   timestamp_fn: string;
   date_fin_saisie: string | null;
+  /** Bulletins de la période visibles des élèves et des parents. */
+  publication_bulletin?: boolean;
 }
 
 /** Statistiques d'un devoir (`GET /competences/devoir/:id/moyenne`) — vide sans note. */

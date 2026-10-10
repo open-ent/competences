@@ -28,6 +28,7 @@ export interface StudentDevoir {
   id_matiere: string;
   id_sousmatiere?: number | null;
   id_periode: number;
+  id_groupe?: string;
   id_type?: number;
   _type_libelle?: string;
   diviseur?: number | string;
@@ -74,6 +75,7 @@ const fromRow = (row: StudentCompetence | StudentAnnotation): Omit<FamilyDevoir,
   date: row.date,
   id_matiere: row.id_matiere,
   id_sousmatiere: row.id_sousmatiere,
+  id_groupe: row.id_groupe,
   id_periode: row.id_periode,
   id_type: row.id_type,
   _type_libelle: row._type_libelle,

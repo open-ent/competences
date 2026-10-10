@@ -77,9 +77,8 @@ public class CompetencesController extends ControllerHelper {
         //   2. la préférence de l'usager (clé `competencesUi`), posée par les bandeaux de bascule et
         //      par la page de réglages du dashboard ;
         //   3. la conf `frontend-ui` de la plateforme.
-        // Seul l'espace ENSEIGNANT est porté : élèves et parents restent sur l'AngularJS, sauf
-        // dérogation d'URL explicite — une préférence posée depuis le dashboard ne doit pas les
-        // envoyer sur une interface qui ne sait encore rien leur montrer.
+        // Les mêmes règles valent pour tous : l'espace des élèves et des parents est porté lui
+        // aussi, l'interface React choisissant ses écrans d'après le profil de la session.
         final String uiParam = request.params().get("ui");
         final String forcedUi = ("react".equals(uiParam) || "angular".equals(uiParam)) ? uiParam : null;
 
@@ -92,9 +91,7 @@ public class CompetencesController extends ControllerHelper {
             Utils.setDomain(getHost(request));
             final String type = user.getType();
             final boolean studentOrRelative = "Student".equals(type) || "Relative".equals(type);
-            final Future<String> ui = studentOrRelative
-                    ? Future.succeededFuture(forcedUi != null ? forcedUi : "angular")
-                    : preferredUi(user.getUserId(), forcedUi);
+            final Future<String> ui = preferredUi(user.getUserId(), forcedUi);
             ui.onSuccess(chosen -> {
                 if ("react".equals(chosen)) {
                     // Vue GÉNÉRÉE par Vite (frontend/index.html) : ses fichiers portent une

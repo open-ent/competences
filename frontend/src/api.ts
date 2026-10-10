@@ -6,6 +6,7 @@ import type { ArchiveYears, LsuErrors, StsFile, UnheededStudent } from './lsu';
 import { mergeDevoirs } from './family';
 import type { FamilyChild, FamilyDevoir, StudentAnnotation, StudentCompetence, StudentDevoir } from './family';
 import type { ProjetAppreciation, ProjetElement } from './projets';
+import type { MoyenneFinale, SubTopicService } from './releveFamille';
 import type { ClasseEvaluation, CompetenceEvaluation, Conversion } from './suivi';
 
 import type {
@@ -649,3 +650,32 @@ export const getCyclesEleve = async (eleveId: string) =>
   (await getJson<Array<{ id_cycle: number; libelle: string }>>(`/competences/cycles/eleve/${eleveId}`)) ?? [];
 
 export const studentPictureUrl = (child: FamilyChild) => `/viescolaire/structures/${child.idStructure}/students/${child.id}/picture`;
+
+/** Moyennes posées par les enseignants pour l'élève ; sans période, celles de l'année. */
+export const getMoyennesFinales = async (eleveId: string, periode: number | null) =>
+  (await getJson<MoyenneFinale[]>(`/competences/eleve/${eleveId}/moyenneFinale${periode !== null ? `?idPeriode=${periode}` : ''}`)) ?? [];
+
+/** Coefficients des sous-matières, par enseignant et par classe. */
+export const getSubTopicServices = async (structureId: string) =>
+  (await getJson<SubTopicService[]>(`/competences/subtopics/services/${structureId}`)) ?? [];
+
+/** Relevé de notes en PDF, tel que l'imprimait l'AngularJS (`Evaluations.getReleve`). */
+export function relevePdfUrl(child: FamilyChild, periode: { id_type: number; type: number; ordre: number } | null) {
+  let url = `/competences/releve/pdf?idEtablissement=${child.idStructure}&idEleve=${child.id}`;
+  if (periode) url += `&idPeriode=${periode.id_type}&idTypePeriode=${periode.type}&ordrePeriode=${periode.ordre}`;
+  return url;
+}
+
+/** Bulletin déjà généré pour l'élève sur la période ; `null` s'il n'y en a pas (204) ou s'il est refusé. */
+export async function seeBulletin(body: {
+  idEleve: string;
+  idPeriode: number;
+  idStructure: string;
+  idClasse: string;
+  idParent: string | null;
+}): Promise<Blob | null> {
+  const res = await fetch('/competences/see/bulletins', { credentials: 'include', method: 'POST', headers: xsrfHeaders(), body: JSON.stringify(body) });
+  if (res.status === 204 || [400, 401, 403, 500].includes(res.status)) return null;
+  if (!res.ok) throw new Error(`${res.status} see/bulletins`);
+  return new Blob([await res.arrayBuffer()], { type: 'application/pdf' });
+}

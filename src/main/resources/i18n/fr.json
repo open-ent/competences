@@ -811,7 +811,7 @@
   "you.have": "Vous avez sélectionné ",
   "évaluation.domaine.bfc.nonevalue": "(domaine non évalué)",
   "competences.switch.invitation.title": "Essayez la nouvelle version des évaluations",
-  "competences.switch.invitation.body": "Elle reprend l'habillage commun aux autres applications. L'accueil, les évaluations (création, saisie des notes et des compétences), le relevé périodique, les suivis d'un élève et d'une classe, la saisie des projets et le suivi des acquis du conseil de classe y sont disponibles ; le reste s'ouvre encore dans cette version.",
+  "competences.switch.invitation.body": "Elle reprend l'habillage commun aux autres applications. L'accueil, les évaluations (création, saisie des notes et des compétences), le relevé périodique, les suivis d'un élève et d'une classe, la saisie des projets, le suivi des acquis du conseil de classe, la génération des bulletins et les exports y sont disponibles ; le reste s'ouvre encore dans cette version.",
   "competences.switch.invitation.later": "Plus tard",
   "competences.switch.invitation.try": "Essayer",
   "competences.switch.return.title": "Vous utilisez la nouvelle version des évaluations.",
@@ -907,5 +907,6 @@
   "competences.react.famille.children": "Choix de l'enfant",
   "competences.react.famille.previous": "Évaluation précédente",
   "competences.react.famille.next": "Évaluation suivante",
-  "competences.react.famille.no.cycle": "La classe de l'élève n'est rattachée à aucun cycle : le bilan de compétences n'est pas disponible."
+  "competences.react.famille.no.cycle": "La classe de l'élève n'est rattachée à aucun cycle : le bilan de compétences n'est pas disponible.",
+  "competences.switch.invitation.body.famille": "Elle reprend l'habillage commun aux autres applications : évaluations, relevé de notes, bilan de compétences et bulletins y sont disponibles."
 }
