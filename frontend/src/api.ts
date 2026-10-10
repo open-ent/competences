@@ -1,5 +1,6 @@
 // Client REST du module Compétences — session ENT, même origine.
 import type { NoteWrite } from './saisie';
+import type { CompetenceEvaluation, Conversion } from './suivi';
 
 import type {
   Annotation,
@@ -336,3 +337,47 @@ export const saveAppreciationClasse = (k: ReleveKey, appreciation: string) =>
 
 export const saveElementProgramme = (k: ReleveKey, texte: string) =>
   send('POST', '/competences/releve/element/programme', { ...releveBody(k), texte });
+
+// ── Suivi d'un élève ─────────────────────────────────────────────────────────
+
+/** Domaine du socle, avec ses sous-domaines et les compétences qui s'y rattachent. */
+export interface DomaineSuivi {
+  id: number;
+  niveau: number;
+  codification: string;
+  libelle: string;
+  evaluated: boolean;
+  domaines?: DomaineSuivi[];
+  competences?: Array<{ id: number; nom: string; id_domaine: number; masque: boolean }>;
+}
+
+export const getDomainesEleve = async (classId: string, eleveId: string, idCycle: number): Promise<DomaineSuivi[]> =>
+  (await getJson<DomaineSuivi[]>(`/competences/domaines?idClasse=${classId}&idEleve=${eleveId}&idCycle=${idCycle}`)) ?? [];
+
+/** Évaluations de compétences d'un élève ; sans période, toute l'année. */
+export const getCompetenceNotesEleve = async (eleveId: string, idCycle: number, periode: number | null): Promise<CompetenceEvaluation[]> =>
+  (await getJson<CompetenceEvaluation[]>(
+    `/competences/competence/notes/eleve/${eleveId}?idCycle=${idCycle}${periode !== null ? `&idPeriode=${periode}` : ''}&isCycle=false`,
+  )) ?? [];
+
+export const getConversionTable = async (structureId: string, classId: string): Promise<Conversion[]> =>
+  (await getJson<Conversion[]>(`/competences/competence/notes/bilan/conversion?idEtab=${structureId}&idClasse=${classId}`)) ?? [];
+
+/** Option de l'établissement : niveau d'une compétence par MOYENNE plutôt que par maximum. */
+export const getSkillAverageOption = async (structureId: string): Promise<boolean> => {
+  try {
+    return !!(await getJson<{ is_average_skills?: boolean }>(`/competences/structure/${structureId}/options/isSkillAverage`))
+      ?.is_average_skills;
+  } catch {
+    return false;
+  }
+};
+
+/** Niveau final d'une compétence pour l'élève, sur une période (`null` = l'année). */
+export const saveNiveauFinal = (body: {
+  id_periode: number | null;
+  id_eleve: string;
+  niveau_final: number;
+  id_competence: number;
+  ids_matieres: string[];
+}) => send('POST', '/competences/competence/note/niveaufinal', body);

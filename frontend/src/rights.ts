@@ -12,6 +12,8 @@ export const WORKFLOW = {
   accessConseil: 'fr.openent.competences.controllers.BilanPeriodiqueController|getSuiviDesAcquisEleve',
   exportLSU: 'fr.openent.competences.controllers.LSUController|getXML',
   exportBulletins: 'fr.openent.competences.controllers.ExportPDFController|exportBulletins',
+  /** Poser le niveau final d'une compétence dans le suivi d'un élève. */
+  saveCompetenceNiveauFinal: 'fr.openent.competences.controllers.CompetenceNoteController|saveCompetenceNiveauFinal',
   /** Droit `viescolaire.adminChefEtab` : personnel de direction (`Utils.isChefEtabOrHeadTeacher`). */
   adminChefEtab: 'fr.openent.DisplayController|view',
 } as const;

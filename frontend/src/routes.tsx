@@ -6,6 +6,7 @@ import { NotMigrated } from './screens/NotMigrated';
 import { Releve } from './screens/Releve';
 import { Root } from './screens/Root';
 import { SaisieDevoir } from './screens/SaisieDevoir';
+import { SuiviEleve } from './screens/SuiviEleve';
 import { TeacherHome } from './screens/TeacherHome';
 
 /**
@@ -30,9 +31,9 @@ export const routes: RouteObject[] = [
       { path: 'devoir/create', element: <DevoirFormScreen mode="create" /> },
       { path: 'devoir/:idDevoir/edit', element: <DevoirFormScreen mode="edit" /> },
       { path: 'releve', element: <Releve /> },
+      { path: 'competences/eleve', element: <SuiviEleve /> },
 
       // ── Écrans restant à porter ───────────────────────────────────────────
-      { path: 'competences/eleve', element: <NotMigrated /> },
       { path: 'competences/classe', element: <NotMigrated /> },
       { path: 'projets', element: <NotMigrated /> },
       { path: 'conseil/de/classe', element: <NotMigrated /> },

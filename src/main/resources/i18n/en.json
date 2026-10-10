@@ -874,5 +874,11 @@
   "competences.react.form.understood": "Got it",
   "competences.react.releve.choose": "Choose a class, a period and a subject to display the report.",
   "competences.react.releve.final.changed": "Average changed by the teacher",
-  "competences.react.releve.clear.appreciation": "Delete this comment? It will no longer appear on the report or the school report."
+  "competences.react.releve.clear.appreciation": "Delete this comment? It will no longer appear on the report or the school report.",
+  "competences.react.suivi.only.mine": "My assessments only",
+  "competences.react.suivi.no.conversion": "The level conversion table is not set up for this school: computed levels cannot be displayed.",
+  "competences.react.suivi.legend": "Mastery levels legend",
+  "competences.react.suivi.final.change": "Final level: [[level]]. Click to move to the next level.",
+  "competences.react.suivi.no.evaluation": "No assessment to display.",
+  "competences.react.suivi.formative": "formative"
 }

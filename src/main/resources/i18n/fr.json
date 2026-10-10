@@ -874,5 +874,11 @@
   "competences.react.form.understood": "Compris",
   "competences.react.releve.choose": "Choisissez une classe, une période et une matière pour afficher le relevé.",
   "competences.react.releve.final.changed": "Moyenne modifiée par l'enseignant",
-  "competences.react.releve.clear.appreciation": "Effacer cette appréciation ? Elle ne figurera plus sur le relevé ni sur le bulletin."
+  "competences.react.releve.clear.appreciation": "Effacer cette appréciation ? Elle ne figurera plus sur le relevé ni sur le bulletin.",
+  "competences.react.suivi.only.mine": "Mes évaluations seulement",
+  "competences.react.suivi.no.conversion": "La table de conversion des niveaux n'est pas paramétrée pour cet établissement : les niveaux calculés ne peuvent pas être affichés.",
+  "competences.react.suivi.legend": "Légende des niveaux de maîtrise",
+  "competences.react.suivi.final.change": "Niveau final : [[level]]. Cliquer pour passer au niveau suivant.",
+  "competences.react.suivi.no.evaluation": "Aucune évaluation à afficher.",
+  "competences.react.suivi.formative": "formative"
 }
