@@ -811,7 +811,7 @@
   "you.have": "You have selected ",
   "évaluation.domaine.bfc.nonevalue": "(domain not assessed)",
   "competences.switch.invitation.title": "Try the new version of assessments",
-  "competences.switch.invitation.body": "It follows the look shared by the other applications. The home page, assessments (creating them, entering marks and skills), the periodic report, student and class follow-ups and the class council progress tab are available there; everything else still opens in this version.",
+  "competences.switch.invitation.body": "It follows the look shared by the other applications. The home page, assessments (creating them, entering marks and skills), the periodic report, student and class follow-ups, project comments and the class council progress tab are available there; everything else still opens in this version.",
   "competences.switch.invitation.later": "Later",
   "competences.switch.invitation.try": "Try it",
   "competences.switch.return.title": "You are using the new version of assessments.",
@@ -885,5 +885,6 @@
   "competences.react.conseil.other.tabs": "The projects, school life, charts, end-of-cycle report and digital skills tabs remain in the previous version.",
   "competences.react.conseil.empty": "Nothing to display for this student over the period: no average, comment or positioning.",
   "competences.react.conseil.moyenne.generale": "Overall average",
-  "competences.react.conseil.calcule": "computed"
+  "competences.react.conseil.calcule": "computed",
+  "competences.react.projets.none": "No element of this kind concerns you in this class."
 }

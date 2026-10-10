@@ -1,6 +1,7 @@
 // Client REST du module Compétences — session ENT, même origine.
 import type { NoteWrite } from './saisie';
 import type { AcquisRaw } from './conseil';
+import type { ProjetAppreciation, ProjetElement } from './projets';
 import type { ClasseEvaluation, CompetenceEvaluation, Conversion } from './suivi';
 
 import type {
@@ -432,4 +433,46 @@ export const savePositionnement = (
     positionnement,
     delete: remove,
     isBilanPeriodique: true,
+  });
+
+// ── Saisie des projets ───────────────────────────────────────────────────────
+
+/** Classes qui portent au moins un élément de projet. */
+export const getProjetClasses = async (structureId: string): Promise<Array<Omit<Classe, 'services'>>> =>
+  (await getJson<Array<Omit<Classe, 'services'>>>(`/competences/elementsBilanPeriodique/classes?idStructure=${structureId}`)) ?? [];
+
+/** Éléments de la classe sur lesquels l'usager intervient. */
+export const getProjetElements = async (structureId: string, classeId: string, enseignantId: string): Promise<ProjetElement[]> =>
+  (await getJson<ProjetElement[]>(`/competences/elementsBilanPeriodique?idEtablissement=${structureId}&idClasse=${classeId}&idEnseignant=${enseignantId}`)) ?? [];
+
+export const getProjetTeachers = async (structureId: string, classeId: string, ids: number[]): Promise<Map<number, string[]>> => {
+  if (ids.length === 0) return new Map();
+  const rows =
+    (await getJson<Array<{ idElement: number; idsEnseignants: string[] }>>(
+      `/competences/elementsBilanPeriodique/enseignants?idClasse=${classeId}&idEtablissement=${structureId}${ids.map((id) => `&idElement=${id}`).join('')}`,
+    )) ?? [];
+  return new Map(rows.map((r) => [r.idElement, r.idsEnseignants]));
+};
+
+export const getProjetAppreciations = async (structureId: string, classeId: string, periode: number, ids: number[]): Promise<ProjetAppreciation[]> =>
+  ids.length === 0
+    ? []
+    : ((await getJson<ProjetAppreciation[]>(
+        `/competences/elementsAppreciations?idPeriode=${periode}&idClasse=${classeId}&idEtablissement=${structureId}${ids.map((id) => `&idElement=${id}`).join('')}`,
+      )) ?? []);
+
+/** Appréciation d'un élève (`eleveId`) ou de la classe sur un élément ; le serveur met à jour l'existante. */
+export const saveProjetAppreciation = (
+  k: { structureId: string; classe: Pick<Classe, 'id' | 'externalId'>; periode: number; elementId: number },
+  appreciation: string,
+  eleveId?: string,
+) =>
+  send('POST', `/competences/elementsAppreciationsSaisieProjet?type=${eleveId ? 'eleve' : 'classe'}`, {
+    id_periode: k.periode,
+    id_element: k.elementId,
+    id_etablissement: k.structureId,
+    ...(eleveId ? { id_eleve: eleveId } : {}),
+    appreciation,
+    id_classe: k.classe.id,
+    externalid_classe: k.classe.externalId,
   });
