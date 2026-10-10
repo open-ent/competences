@@ -12,6 +12,8 @@ export const WORKFLOW = {
   accessConseil: 'fr.openent.competences.controllers.BilanPeriodiqueController|getSuiviDesAcquisEleve',
   exportLSU: 'fr.openent.competences.controllers.LSUController|getXML',
   exportBulletins: 'fr.openent.competences.controllers.ExportPDFController|exportBulletins',
+  /** Appréciation, positionnement et éléments du programme depuis le conseil de classe. */
+  canSaveAppMatierePosiBilanPeriodique: 'fr.openent.competences.controllers.NoteController|saveAppreciationMatiereAndPositionnementWorfklow',
   /** Poser le niveau final d'une compétence dans le suivi d'un élève. */
   saveCompetenceNiveauFinal: 'fr.openent.competences.controllers.CompetenceNoteController|saveCompetenceNiveauFinal',
   /** Droit `viescolaire.adminChefEtab` : personnel de direction (`Utils.isChefEtabOrHeadTeacher`). */

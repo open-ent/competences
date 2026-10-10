@@ -1,5 +1,6 @@
 import { Navigate, RouteObject, createHashRouter } from 'react-router-dom';
 
+import { ConseilDeClasse } from './screens/ConseilDeClasse';
 import { DevoirFormScreen } from './screens/DevoirFormScreen';
 import { DevoirsList } from './screens/DevoirsList';
 import { NotMigrated } from './screens/NotMigrated';
@@ -34,10 +35,10 @@ export const routes: RouteObject[] = [
       { path: 'releve', element: <Releve /> },
       { path: 'competences/eleve', element: <SuiviEleve /> },
       { path: 'competences/classe', element: <SuiviClasse /> },
+      { path: 'conseil/de/classe', element: <ConseilDeClasse /> },
 
       // ── Écrans restant à porter ───────────────────────────────────────────
       { path: 'projets', element: <NotMigrated /> },
-      { path: 'conseil/de/classe', element: <NotMigrated /> },
       { path: 'export', element: <NotMigrated /> },
       { path: 'disabled', element: <NotMigrated /> },
       { path: 'bulletin', element: <NotMigrated /> },

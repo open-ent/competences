@@ -811,7 +811,7 @@
   "you.have": "Vous avez sélectionné ",
   "évaluation.domaine.bfc.nonevalue": "(domaine non évalué)",
   "competences.switch.invitation.title": "Essayez la nouvelle version des évaluations",
-  "competences.switch.invitation.body": "Elle reprend l'habillage commun aux autres applications. L'accueil, les évaluations (création, saisie des notes et des compétences), le relevé périodique et les suivis d'un élève et d'une classe y sont disponibles ; le reste s'ouvre encore dans cette version.",
+  "competences.switch.invitation.body": "Elle reprend l'habillage commun aux autres applications. L'accueil, les évaluations (création, saisie des notes et des compétences), le relevé périodique, les suivis d'un élève et d'une classe et le suivi des acquis du conseil de classe y sont disponibles ; le reste s'ouvre encore dans cette version.",
   "competences.switch.invitation.later": "Plus tard",
   "competences.switch.invitation.try": "Essayer",
   "competences.switch.return.title": "Vous utilisez la nouvelle version des évaluations.",
@@ -881,5 +881,9 @@
   "competences.react.suivi.final.change": "Niveau final : [[level]]. Cliquer pour passer au niveau suivant.",
   "competences.react.suivi.no.evaluation": "Aucune évaluation à afficher.",
   "competences.react.suivi.formative": "formative",
-  "competences.react.classe.count": "[[count]] élève(s) dans la classe sur la période."
+  "competences.react.classe.count": "[[count]] élève(s) dans la classe sur la période.",
+  "competences.react.conseil.other.tabs": "Les onglets projets, vie scolaire, graphiques, bilan de fin de cycle et compétences numériques restent dans la version précédente.",
+  "competences.react.conseil.empty": "Rien à afficher pour cet élève sur la période : ni moyenne, ni appréciation, ni positionnement.",
+  "competences.react.conseil.moyenne.generale": "Moyenne générale",
+  "competences.react.conseil.calcule": "calculé"
 }

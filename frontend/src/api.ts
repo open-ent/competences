@@ -1,5 +1,6 @@
 // Client REST du module Compétences — session ENT, même origine.
 import type { NoteWrite } from './saisie';
+import type { AcquisRaw } from './conseil';
 import type { ClasseEvaluation, CompetenceEvaluation, Conversion } from './suivi';
 
 import type {
@@ -395,3 +396,40 @@ export const getCompetenceNotesClasse = async (
 /** Arbre des domaines de la classe (sans élève). */
 export const getDomainesClasse = async (classId: string): Promise<DomaineSuivi[]> =>
   (await getJson<DomaineSuivi[]>(`/competences/domaines?idClasse=${classId}`)) ?? [];
+
+// ── Conseil de classe ────────────────────────────────────────────────────────
+
+/** Suivi des acquis d'un élève : une entrée par matière, toutes périodes confondues. */
+export const getAcquis = async (eleveId: string, structureId: string, classeId: string, periode: number): Promise<AcquisRaw[]> =>
+  (await getJson<AcquisRaw[]>(`/competences/bilan/periodique/eleve/${eleveId}?idEtablissement=${structureId}&idClasse=${classeId}&idPeriode=${periode}`)) ?? [];
+
+/** Pourcentage de compétences validées par matière ; une panne ne doit pas masquer le reste. */
+export const getSkillsValidated = async (structureId: string, eleveId: string, periode: number, classeId: string): Promise<Map<string, number>> => {
+  try {
+    const body = await getJson<{ achievementsSubjects?: Array<{ subjectId: string; skillsValidatedPercentage: number }> }>(
+      `/competences/structures/${structureId}/student/${eleveId}/subjectsSkillsValidatedPercentage?periodId=${periode}&groupId=${classeId}`,
+    );
+    return new Map((body?.achievementsSubjects ?? []).map((s) => [s.subjectId, s.skillsValidatedPercentage]));
+  } catch {
+    return new Map();
+  }
+};
+
+/** Positionnement retenu pour une matière ; `remove` rend la main au calcul. */
+export const savePositionnement = (
+  k: { structureId: string; classeId: string; matiereId: string; periode: number },
+  eleveId: string,
+  positionnement: number,
+  remove: boolean,
+) =>
+  send('POST', '/competences/releve/periodique', {
+    idEleve: eleveId,
+    idMatiere: k.matiereId,
+    idEtablissement: k.structureId,
+    idPeriode: k.periode,
+    idClasse: k.classeId,
+    colonne: 'positionnement',
+    positionnement,
+    delete: remove,
+    isBilanPeriodique: true,
+  });
