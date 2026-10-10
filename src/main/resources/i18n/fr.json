@@ -911,5 +911,11 @@
   "competences.switch.invitation.body.famille": "Elle reprend l'habillage commun aux autres applications : évaluations, relevé de notes, bilan de compétences et bulletins y sont disponibles.",
   "competences.react.conseil.avis.custom": "— Personnalisé —",
   "competences.react.conseil.published": "Les bulletins de cette période sont publiés : le conseil de classe n'est plus modifiable.",
-  "competences.react.conseil.from.presences": "Retards et absences remontés du module Présences : ils se corrigent là-bas."
+  "competences.react.conseil.from.presences": "Retards et absences remontés du module Présences : ils se corrigent là-bas.",
+  "competences.react.graph.values": "Valeurs du graphique",
+  "competences.react.graph.min": "Moyenne minimale de la classe",
+  "competences.react.graph.max": "Moyenne maximale de la classe",
+  "competences.react.graph.empty": "Aucune donnée à représenter pour cette période.",
+  "competences.react.graph.repartition": "Répartition des niveaux de l'élève",
+  "competences.react.graph.type": "Type de graphique"
 }

@@ -5,9 +5,12 @@ import { useTranslation } from 'react-i18next';
 
 import * as api from '../api';
 import { Avis, avisOfType, avisSynthesePeriode, evenementsHistorique, EvenementLigne } from '../conseil';
+import { graphRows } from '../graphiques';
 import { appreciationsByElement, elementTitle, MAX_PROJET_APPRECIATION } from '../projets';
+import { levelsForCycle } from '../saisie';
 import { useStructure } from '../structure';
 import type { Classe, PeriodeClasse } from '../types';
+import { BarChart, RadarChart, RepartitionBars, Series } from './Charts';
 import { usePeriodeLabel } from './Filters';
 import { AppreciationInput } from './SaisieInputs';
 
@@ -419,6 +422,102 @@ export function VieScolaire({
           </table>
         </div>
       </section>
+    </div>
+  );
+}
+
+const COLORS = { eleve: '#00ADF9', classe: '#787c87', min: '#46BFBD', max: '#fd9236' };
+
+/**
+ * Onglet « Graphiques » (`display_graphiques.html`) : par matière puis par domaine, en bâtons ou
+ * en radar, les niveaux de compétence (élève, classe, répartition) et, pour les matières, les
+ * moyennes. Pas encore portée : la comparaison entre périodes.
+ */
+export function Graphiques({ classe, periode, eleveId }: Ctx) {
+  const { t } = useTranslation(['competences', 'viescolaire', 'common']);
+  const { structureId } = useStructure();
+  const [type, setType] = useState<'baton' | 'radar'>('baton');
+  const [show, setShow] = useState({ competences: true, notes: false });
+  const matieresQuery = useQuery({
+    queryKey: ['competences', structureId, 'graph', 'matiere', classe.id, eleveId, periode.id_type],
+    queryFn: () => api.getGraphData('matiere', structureId, classe, eleveId, periode.id_type),
+  });
+  const domainesQuery = useQuery({
+    queryKey: ['competences', structureId, 'graph', 'domaine', classe.id, eleveId, periode.id_type],
+    queryFn: () => api.getGraphData('domaine', structureId, classe, eleveId, periode.id_type),
+  });
+  const levelsQuery = useQuery({ queryKey: ['competences', structureId, 'maitrise'], queryFn: () => api.getMaitriseLevels(structureId) });
+  const levels = levelsForCycle(levelsQuery.data ?? [], classe.id_cycle);
+  const Chart = type === 'radar' ? RadarChart : BarChart;
+  // Au moins un des deux affichages reste coché (`unlessOneChecked`).
+  const toggle = (k: 'competences' | 'notes') => setShow((s) => (s[k] && !s[k === 'notes' ? 'competences' : 'notes'] ? s : { ...s, [k]: !s[k] }));
+
+  const section = (title: string, rows: ReturnType<typeof graphRows>, withNotes: boolean) => {
+    const categories = rows.map((r) => r.label);
+    const niveaux: Series[] = [
+      { label: t('level.student'), color: COLORS.eleve, values: rows.map((r) => r.niveauEleve) },
+      { label: t('level.class'), color: COLORS.classe, values: rows.map((r) => r.niveauClasse) },
+    ];
+    const notes: Series[] = [
+      { label: t('average.student'), color: COLORS.eleve, values: rows.map((r) => r.moyenneEleve) },
+      { label: t('average.class'), color: COLORS.classe, values: rows.map((r) => r.moyenneClasse) },
+      { label: t('competences.react.graph.min'), color: COLORS.min, values: rows.map((r) => r.min) },
+      { label: t('competences.react.graph.max'), color: COLORS.max, values: rows.map((r) => r.max) },
+    ];
+    return (
+      <section className="card p-16 d-flex flex-column gap-12">
+        <h3 className="h6 mb-0">{t(title)}</h3>
+        {rows.length === 0 ? (
+          <Alert type="info">{t('competences.react.graph.empty')}</Alert>
+        ) : (
+          <>
+            {show.competences && (
+              <>
+                <Chart title={`${t(title)} — ${t('evaluation.bilan.periodique.graphiques.competences')}`} categories={categories} series={niveaux} max={4} step={1} />
+                <div>
+                  <h4 className="h6 small text-muted">{t('competences.react.graph.repartition')}</h4>
+                  <RepartitionBars rows={rows} levels={levels} />
+                </div>
+              </>
+            )}
+            {withNotes && show.notes && (
+              <Chart title={`${t(title)} — ${t('evaluation.bilan.periodique.graphiques.notes')}`} categories={categories} series={notes} max={20} step={2} />
+            )}
+          </>
+        )}
+      </section>
+    );
+  };
+
+  return (
+    <div className="d-flex flex-column gap-16">
+      <div className="d-flex flex-wrap gap-16 align-items-center">
+        <div className="btn-group" role="group" aria-label={t('competences.react.graph.type')}>
+          {(['baton', 'radar'] as const).map((v) => (
+            <button key={v} type="button" className={`btn btn-sm ${type === v ? 'btn-primary' : 'btn-outline-primary'}`} aria-pressed={type === v} onClick={() => setType(v)}>
+              {t(`evaluation.bilan.periodique.graphiques.${v}`)}
+            </button>
+          ))}
+        </div>
+        {(['competences', 'notes'] as const).map((k) => (
+          <div key={k} className="form-check">
+            <input id={`graph-${k}`} type="checkbox" className="form-check-input" checked={show[k]} onChange={() => toggle(k)} />
+            <label htmlFor={`graph-${k}`} className="form-check-label">
+              {t(`evaluation.bilan.periodique.graphiques.${k}`)}
+            </label>
+          </div>
+        ))}
+      </div>
+      {matieresQuery.isLoading || domainesQuery.isLoading ? (
+        <LoadingScreen position={false} />
+      ) : matieresQuery.isError || domainesQuery.isError ? (
+        <Alert type="danger">{t('competences.react.loading.error')}</Alert>
+      ) : (
+        <>
+          {section('evaluations.bilan.by.subject', graphRows(matieresQuery.data ?? []), true)}
+          {show.competences && section('evaluations.bilan.by.domaine', graphRows(domainesQuery.data ?? []), false)}
+        </>
+      )}
     </div>
   );
 }

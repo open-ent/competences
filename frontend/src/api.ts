@@ -7,6 +7,7 @@ import { mergeDevoirs } from './family';
 import type { FamilyChild, FamilyDevoir, StudentAnnotation, StudentCompetence, StudentDevoir } from './family';
 import type { ProjetAppreciation, ProjetElement } from './projets';
 import type { MoyenneFinale, SubTopicService } from './releveFamille';
+import type { GraphEntry } from './graphiques';
 import type { ClasseEvaluation, CompetenceEvaluation, Conversion } from './suivi';
 
 import type {
@@ -741,3 +742,15 @@ export const saveAppreciationElementConseil = (
     id_classe: k.classe.id,
     externalid_classe: k.classe.externalId,
   });
+
+/** Données des graphiques du conseil, par matière ou par domaine. */
+export const getGraphData = async (
+  kind: 'matiere' | 'domaine',
+  structureId: string,
+  classe: Pick<Classe, 'id' | 'type_groupe'>,
+  eleveId: string,
+  periode: number,
+): Promise<GraphEntry[]> =>
+  (await getJson<GraphEntry[]>(
+    `/competences/bilan/periodique/datas/graph${kind === 'domaine' ? '/domaine' : ''}?idEtablissement=${structureId}&idClasse=${classe.id}&typeClasse=${classe.type_groupe}&idEleve=${eleveId}&idPeriode=${periode}`,
+  )) ?? [];

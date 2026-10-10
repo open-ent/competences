@@ -911,5 +911,11 @@
   "competences.switch.invitation.body.famille": "It uses the look shared by the other applications: assessments, marks report, skills report and school reports are available.",
   "competences.react.conseil.avis.custom": "— Custom —",
   "competences.react.conseil.published": "School reports for this period are published: the class council can no longer be edited.",
-  "competences.react.conseil.from.presences": "Lateness and absences come from the Attendance module: correct them there."
+  "competences.react.conseil.from.presences": "Lateness and absences come from the Attendance module: correct them there.",
+  "competences.react.graph.values": "Chart values",
+  "competences.react.graph.min": "Class minimum average",
+  "competences.react.graph.max": "Class maximum average",
+  "competences.react.graph.empty": "No data to chart for this period.",
+  "competences.react.graph.repartition": "Distribution of the student's levels",
+  "competences.react.graph.type": "Chart type"
 }

@@ -5,7 +5,7 @@ import { useTranslation } from 'react-i18next';
 
 import * as api from '../api';
 import { acquisRow, conseilRights, isEmptyRow, moyenneGenerale } from '../conseil';
-import { AvisPanel, ProjetsEleve, Synthese, VieScolaire } from '../features/ConseilTabs';
+import { AvisPanel, Graphiques, ProjetsEleve, Synthese, VieScolaire } from '../features/ConseilTabs';
 import { ClasseSelect, StructureSelect, usePeriodeLabel } from '../features/Filters';
 import { AppreciationInput } from '../features/SaisieInputs';
 import { formatMoyenne, MAX_APPRECIATION } from '../releve';
@@ -21,8 +21,8 @@ import type { PeriodeClasse } from '../types';
  * compétences validées.
  *
  * Onglets portés : suivi des acquis (avec la synthèse), projets, vie scolaire ; avis du conseil
- * et d'orientation à côté. Graphiques, bilan de fin de cycle et compétences numériques renvoient
- * vers la version précédente.
+ * et d'orientation à côté ; graphiques. Le bilan de fin de cycle renvoie vers la version
+ * précédente.
  */
 export function ConseilDeClasse() {
   const { t } = useTranslation(['competences', 'viescolaire', 'common']);
@@ -146,14 +146,15 @@ export function ConseilDeClasse() {
   );
 }
 
-type ConseilTab = 'acquis' | 'projets' | 'vie';
+type ConseilTab = 'acquis' | 'projets' | 'vie' | 'graphiques';
 const TABS: Array<{ id: ConseilTab; label: string }> = [
   { id: 'acquis', label: 'evaluation.bilan.periodique.suivi.acquis' },
   { id: 'projets', label: 'evaluation.bilan.periodique.projets' },
   { id: 'vie', label: 'evaluation.bilan.periodique.vie.scolaire' },
+  { id: 'graphiques', label: 'evaluation.bilan.periodique.graphiques' },
 ];
 /** Onglets non portés : ils ouvrent l'AngularJS sur le conseil de classe. */
-const OLD_TABS = ['evaluation.bilan.periodique.graphiques', 'evaluations.bilan.fin.cycle.title'];
+const OLD_TABS = ['evaluations.bilan.fin.cycle.title'];
 
 /** Un élève au conseil : onglets, avis, et droits de saisie de la période. */
 function ConseilEleve({
@@ -210,6 +211,12 @@ function ConseilEleve({
       )}
       {tab === 'projets' && <ProjetsEleve {...ctx} editable={can.appreciationsProjets} />}
       {tab === 'vie' && <VieScolaire {...ctx} canEdit={can.vieScolaire} canAppreciation={can.appreciationCPE} />}
+      {tab === 'graphiques' && (
+        <>
+          <Graphiques {...ctx} />
+          <Synthese {...ctx} editable={can.synthese} />
+        </>
+      )}
     </div>
   );
 }
