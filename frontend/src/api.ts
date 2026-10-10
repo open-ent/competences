@@ -1,4 +1,5 @@
 // Client REST du module Compétences — session ENT, même origine.
+import type { NoteWrite } from './saisie';
 
 import type {
   Annotation,
@@ -12,6 +13,8 @@ import type {
   MaitriseLevel,
   NoteDevoir,
   PeriodeClasse,
+  Releve,
+  ReleveAnnee,
   Eleve,
   Enseignant,
   Matiere,
@@ -259,3 +262,77 @@ export const createDevoir = (body: Record<string, unknown>) => send<{ id: number
 
 export const updateDevoir = (devoirId: number, body: Record<string, unknown>) =>
   send('PUT', `/competences/devoir?idDevoir=${devoirId}`, body);
+
+/** Applique une écriture de note décidée par `noteWrite` (saisie et relevé). */
+export async function applyNoteWrite(devoirId: number, eleveId: string, write: NoteWrite): Promise<void> {
+  switch (write.kind) {
+    case 'deleteAnnotation':
+      await deleteAnnotation(devoirId, eleveId);
+      return;
+    case 'deleteNote':
+      await deleteNote(write.noteId);
+      return;
+    case 'annotation':
+      await saveAnnotation(devoirId, eleveId, write.annotationId);
+      return;
+    case 'note':
+      if (write.replacesAnnotation) await deleteAnnotation(devoirId, eleveId);
+      await saveNote(devoirId, eleveId, write.valeur);
+      return;
+    default:
+  }
+}
+
+// ── Relevé périodique ────────────────────────────────────────────────────────
+
+interface ReleveKey {
+  structureId: string;
+  classe: Pick<Classe, 'id' | 'type_groupe'>;
+  matiereId: string;
+  /** Type de période ; `null` = l'année. */
+  periode: number | null;
+}
+
+const releveQuery = (k: ReleveKey) =>
+  `idEtablissement=${k.structureId}&idClasse=${k.classe.id}&idMatiere=${k.matiereId}&typeClasse=${k.classe.type_groupe}`;
+
+export const getReleve = async (k: ReleveKey): Promise<Releve> =>
+  getJson<Releve>(`/competences/releve?${releveQuery(k)}${k.periode !== null ? `&idPeriode=${k.periode}` : ''}`);
+
+export const getReleveAnnee = async (k: ReleveKey): Promise<ReleveAnnee> =>
+  (await getJson<ReleveAnnee>(`/competences/releve/annee/classe?${releveQuery(k)}`)) ?? { moyennes: [], moyennes_finales: [] };
+
+const releveBody = (k: ReleveKey) => ({
+  idMatiere: k.matiereId,
+  idClasse: k.classe.id,
+  idEtablissement: k.structureId,
+  idPeriode: k.periode,
+});
+
+/**
+ * Moyenne finale d'un élève. `moyenne: null` pose « NN » ; `remove` rend la main au calcul
+ * (`delete` du serveur).
+ */
+export const saveMoyenneFinale = (k: ReleveKey, eleveId: string, moyenne: number | null, remove: boolean) =>
+  send('POST', '/competences/releve/periodique', { ...releveBody(k), idEleve: eleveId, colonne: 'moyenne', moyenne, delete: remove });
+
+/** Appréciation de matière d'un élève sur la période : création, mise à jour ou effacement. */
+export const saveAppreciationMatiere = (k: ReleveKey, eleveId: string, appreciation: string, mode: 'POST' | 'PUT' | 'DELETE') =>
+  send(mode, '/competences/appreciation-subject-period', {
+    ...releveBody(k),
+    idEleve: eleveId,
+    appreciation_matiere_periode: appreciation,
+    delete: mode === 'DELETE',
+  });
+
+export const saveAppreciationClasse = (k: ReleveKey, appreciation: string) =>
+  send('POST', '/competences/appreciation/classe', {
+    appreciation,
+    id_classe: k.classe.id,
+    id_periode: k.periode,
+    id_matiere: k.matiereId,
+    idEtablissement: k.structureId,
+  });
+
+export const saveElementProgramme = (k: ReleveKey, texte: string) =>
+  send('POST', '/competences/releve/element/programme', { ...releveBody(k), texte });

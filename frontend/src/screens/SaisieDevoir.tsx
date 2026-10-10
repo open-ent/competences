@@ -6,6 +6,7 @@ import { Link, useNavigate, useParams } from 'react-router-dom';
 
 import * as api from '../api';
 import { usePeriodeLabel } from '../features/Filters';
+import { AppreciationInput, NoteInput } from '../features/SaisieInputs';
 import { formatDate, isChefEtabOrHeadTeacher, isHeadTeacher } from '../rules';
 import {
   annotationClearsCompetences,
@@ -20,6 +21,7 @@ import {
   levelGrid,
   levelsForCycle,
   nextLevel,
+  noteWrite,
   parseSaisie,
   saisieDisplay,
   sortEleves,
@@ -203,23 +205,13 @@ function SaisieView(props: SaisieViewProps) {
         return devoir.is_evaluated
           ? t('competences.react.saisie.invalid', { codes })
           : t('competences.react.saisie.annotation.only', { codes });
-      case 'empty':
-        await run(async () => {
-          if (note?.id_annotation != null) await api.deleteAnnotation(devoir.id, eleveId);
-          else if (note?.id != null) await api.deleteNote(note.id);
-        });
+      default: {
+        const write = noteWrite(saisie, note);
+        if (write.kind === 'nothing') return null;
+        await run(() => api.applyNoteWrite(devoir.id, eleveId, write));
+        if (write.kind === 'note' && devoir.coefficient === null) setInfo(t('evaluation.devoir.coef.is.null'));
         return null;
-      case 'annotation':
-        await run(() => api.saveAnnotation(devoir.id, eleveId, saisie.annotation.id));
-        return null;
-      case 'note':
-        await run(async () => {
-          // Une note remplace l'annotation : l'AngularJS supprimait celle-ci AVANT d'écrire.
-          if (note?.id_annotation != null) await api.deleteAnnotation(devoir.id, eleveId);
-          await api.saveNote(devoir.id, eleveId, saisie.valeur);
-        });
-        if (devoir.coefficient === null) setInfo(t('evaluation.devoir.coef.is.null'));
-        return null;
+      }
     }
   };
 
@@ -564,101 +556,6 @@ const toggle = <T,>(set: Set<T>, value: T) => {
 
 const formatStat = (value: number | undefined) =>
   value === undefined || value === null ? '—' : value.toLocaleString('fr-FR', { maximumFractionDigits: 1 });
-
-/**
- * Case « Note » : une note, ou le libellé court d'une annotation (ABS, DISP, NN, NR), proposés par
- * une liste d'aide. Enregistrée en quittant la case ou sur Entrée ; refusée, elle revient à la
- * valeur précédente et dit pourquoi.
- */
-function NoteInput({
-  label,
-  value,
-  annotations,
-  disabled,
-  onCommit,
-}: {
-  label: string;
-  value: string;
-  annotations: Annotation[];
-  disabled: boolean;
-  onCommit: (raw: string) => Promise<string | null>;
-}) {
-  const [draft, setDraft] = useState(value);
-  const [problem, setProblem] = useState<string | null>(null);
-  const listId = useId();
-  const problemId = useId();
-  useEffect(() => setDraft(value), [value]);
-
-  const commit = async () => {
-    const message = await onCommit(draft);
-    setProblem(message);
-    if (message) setDraft(value);
-  };
-
-  return (
-    <div>
-      <input
-        type="text"
-        inputMode="decimal"
-        className={`form-control form-control-sm ${problem ? 'is-invalid' : ''}`}
-        style={{ width: 84 }}
-        aria-label={label}
-        aria-invalid={!!problem}
-        aria-describedby={problem ? problemId : undefined}
-        list={listId}
-        value={draft}
-        disabled={disabled}
-        onChange={(e) => setDraft(e.target.value)}
-        onFocus={(e) => e.target.select()}
-        onBlur={commit}
-        onKeyDown={(e) => {
-          if (e.key === 'Enter') (e.target as HTMLInputElement).blur();
-        }}
-      />
-      <datalist id={listId}>
-        {annotations.map((a) => (
-          <option key={a.id} value={a.libelle_court}>
-            {a.libelle}
-          </option>
-        ))}
-      </datalist>
-      {problem && (
-        <div id={problemId} className="invalid-feedback d-block" style={{ maxWidth: 220 }}>
-          {problem}
-        </div>
-      )}
-    </div>
-  );
-}
-
-function AppreciationInput({
-  label,
-  value,
-  disabled,
-  onCommit,
-}: {
-  label: string;
-  value: string;
-  disabled: boolean;
-  onCommit: (value: string) => Promise<void>;
-}) {
-  const [draft, setDraft] = useState(value);
-  useEffect(() => setDraft(value), [value]);
-  return (
-    <input
-      type="text"
-      className="form-control form-control-sm"
-      aria-label={label}
-      value={draft}
-      disabled={disabled}
-      onChange={(e) => setDraft(e.target.value)}
-      onBlur={() => onCommit(draft)}
-      onKeyDown={(e) => {
-        if (e.key === 'Enter') (e.target as HTMLInputElement).blur();
-      }}
-    />
-  );
-}
 
 /**
  * Pastille de niveau (`cSkillNoteDevoir`). Clic : niveau suivant ; touches 0 à 4 : niveau direct.

@@ -215,3 +215,36 @@ export function bulkMessageKey(nbEleves: number, nbCompetences: number): string 
   if (nbCompetences > 0) return 'evaluation.action.evaluate.all.students.for.skills';
   return 'evaluation.action.confirme.initialise.skills';
 }
+
+// ── Enregistrement d'une note ou d'une annotation ───────────────────────────
+
+/** Ce qu'il faut écrire au serveur pour une saisie déjà validée (`saveNoteDevoirEleve`). */
+export type NoteWrite =
+  | { kind: 'deleteAnnotation' }
+  | { kind: 'deleteNote'; noteId: number }
+  | { kind: 'annotation'; annotationId: number }
+  | { kind: 'note'; valeur: number; replacesAnnotation: boolean }
+  | { kind: 'nothing' };
+
+/**
+ * Traduit une saisie en écriture. Une case vidée retire l'annotation posée, sinon la note ; une
+ * note qui succède à une annotation impose de retirer celle-ci D'ABORD (l'AngularJS le faisait,
+ * le serveur ne le fait pas pour nous).
+ */
+export function noteWrite(
+  saisie: Saisie,
+  current: { id: number | null; id_annotation: number | null } | undefined,
+): NoteWrite {
+  switch (saisie.kind) {
+    case 'empty':
+      if (current?.id_annotation != null) return { kind: 'deleteAnnotation' };
+      if (current?.id != null) return { kind: 'deleteNote', noteId: current.id };
+      return { kind: 'nothing' };
+    case 'annotation':
+      return current?.id_annotation === saisie.annotation.id ? { kind: 'nothing' } : { kind: 'annotation', annotationId: saisie.annotation.id };
+    case 'note':
+      return { kind: 'note', valeur: saisie.valeur, replacesAnnotation: current?.id_annotation != null };
+    default:
+      return { kind: 'nothing' };
+  }
+}

@@ -811,7 +811,7 @@
   "you.have": "Vous avez sélectionné ",
   "évaluation.domaine.bfc.nonevalue": "(domaine non évalué)",
   "competences.switch.invitation.title": "Essayez la nouvelle version des évaluations",
-  "competences.switch.invitation.body": "Elle reprend l'habillage commun aux autres applications. L'accueil, la liste des évaluations, leur création et la saisie des notes et des compétences y sont disponibles ; le reste s'ouvre encore dans cette version.",
+  "competences.switch.invitation.body": "Elle reprend l'habillage commun aux autres applications. L'accueil, les évaluations (création, saisie des notes et des compétences) et le relevé périodique y sont disponibles ; le reste s'ouvre encore dans cette version.",
   "competences.switch.invitation.later": "Plus tard",
   "competences.switch.invitation.try": "Essayer",
   "competences.switch.return.title": "Vous utilisez la nouvelle version des évaluations.",
@@ -871,5 +871,8 @@
   "competences.react.form.take.last": "Reprendre les compétences de ma dernière évaluation",
   "competences.react.form.enseignements": "Filtrer par enseignement",
   "competences.react.form.no.competence": "Aucune compétence ne correspond.",
-  "competences.react.form.understood": "Compris"
+  "competences.react.form.understood": "Compris",
+  "competences.react.releve.choose": "Choisissez une classe, une période et une matière pour afficher le relevé.",
+  "competences.react.releve.final.changed": "Moyenne modifiée par l'enseignant",
+  "competences.react.releve.clear.appreciation": "Effacer cette appréciation ? Elle ne figurera plus sur le relevé ni sur le bulletin."
 }

@@ -236,3 +236,51 @@ export interface Enseignement {
   nom: string;
   competences_1?: CompetenceRef[];
 }
+
+// ── Relevé périodique ────────────────────────────────────────────────────────
+
+/** Note ou annotation d'un élève sur un devoir, dans `GET /competences/releve`. */
+export interface ReleveNoteRow {
+  id_devoir: number;
+  id_eleve: string;
+  id: number | null;
+  valeur: string | null;
+  /** Annotation posée (ABS, DISP…), par son identifiant. */
+  annotation: number | null;
+}
+
+/** Un élève du relevé, avec ce que le serveur a calculé pour lui. */
+export interface ReleveEleve {
+  id: string;
+  firstName?: string;
+  lastName?: string;
+  displayName?: string;
+  deleteDate?: string | null;
+  /** Moyenne calculée (absente faute de note). */
+  moyenne?: number | null;
+  /** Moyenne saisie par l'enseignant : absente si aucune, `null` pour « NN », sinon une chaîne. */
+  moyenneFinale?: string | null;
+  appreciation_matiere_periode?: string | null;
+  /** Moyennes par matière puis par sous-matière (`null` = la matière entière). */
+  _moyenne?: Record<string, Record<string, { moyenne?: number | null } | undefined> | undefined>;
+}
+
+export interface ReleveStats {
+  min: number | string | null;
+  max: number | string | null;
+  moyenne: number | string | null;
+}
+
+export interface Releve {
+  eleves: ReleveEleve[];
+  notes: ReleveNoteRow[];
+  devoirs: Array<{ id: number; moyenne?: number; noteMin?: number; noteMax?: number }>;
+  _moyenne_classe?: { null?: ReleveStats; nullFinal?: ReleveStats } & Record<string, ReleveStats | undefined>;
+  appreciation_classe?: { appreciation?: string | null };
+  elementProgramme?: { texte?: string | null };
+}
+
+export interface ReleveAnnee {
+  moyennes: Array<{ id_eleve: string; id_periode: number | null; moyenne: number | string | null }>;
+  moyennes_finales: Array<{ id_eleve: string; id_periode: number | null; moyenne: number | string | null }>;
+}
