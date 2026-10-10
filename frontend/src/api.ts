@@ -1,6 +1,8 @@
 // Client REST du module Compétences — session ENT, même origine.
 import type { NoteWrite } from './saisie';
 import type { AcquisRaw } from './conseil';
+import { parseLsuErrors } from './lsu';
+import type { ArchiveYears, LsuErrors, StsFile, UnheededStudent } from './lsu';
 import type { ProjetAppreciation, ProjetElement } from './projets';
 import type { ClasseEvaluation, CompetenceEvaluation, Conversion } from './suivi';
 
@@ -538,4 +540,67 @@ export async function getCompetencesPreference(): Promise<Record<string, unknown
 
 export async function setCompetencesPreference(value: Record<string, unknown>): Promise<void> {
   await fetch('/userbook/preference/competences', { credentials: 'include', method: 'PUT', headers: xsrfHeaders(), body: JSON.stringify(value) });
+}
+
+// ── Export LSU et archives (#/export) ─────────────────────────────────────────
+
+/** Personnels de direction proposés comme responsables de l'export. */
+export const getResponsablesDirection = async (structureId: string): Promise<Array<{ id: string; displayName: string }>> =>
+  (await getJson<Array<{ id: string; displayName: string }>>(`/competences/responsablesDirection?idStructure=${structureId}`)) ?? [];
+
+/** Les dix derniers fichiers STS enregistrés pour l'établissement, du plus récent au plus ancien. */
+export const getStsFiles = async (structureId: string): Promise<StsFile[]> =>
+  (await getJson<StsFile[]>(`/competences/lsu/sts/files/${structureId}`)) ?? [];
+
+export const saveStsFile = (structureId: string, name: string, individus: unknown[]) =>
+  send<{ id: number; creation_date: string }>('POST', '/competences/lsu/data/sts', {
+    id_structure: structureId,
+    name_file: name,
+    content: JSON.stringify(individus),
+  });
+
+/** Élèves déjà écartés de l'export ; `idPeriodes` à `null` pour la fin de cycle. */
+export const getUnheededStudents = async (structureId: string, idClasses: string[], idPeriodes: number[] | null) =>
+  (await send<UnheededStudent[]>('POST', '/competences/lsu/unheeded/students', { action: 'get', idStructure: structureId, idClasses, idPeriodes })) ?? [];
+
+export const setUnheededStudent = (ignore: boolean, idEleve: string, idClasse: string, idPeriode: number | null) =>
+  send('POST', '/competences/lsu/unheeded/students', { action: ignore ? 'add' : 'rem', idsStudents: [idEleve], idClasse, idPeriode });
+
+/** Le fichier XML, ou les erreurs de l'export (400). */
+export async function exportLsu(body: unknown): Promise<{ blob: Blob; filename: string } | { errors: LsuErrors }> {
+  const res = await fetch('/competences/exportLSU/lsu', { credentials: 'include', method: 'POST', headers: xsrfHeaders(), body: JSON.stringify(body) });
+  if (res.status === 400) {
+    const text = await res.text();
+    let data: unknown = null;
+    try {
+      data = text ? JSON.parse(text) : null;
+    } catch {
+      /* corps illisible */
+    }
+    if (data && typeof data === 'object') return { errors: parseLsuErrors(data as Record<string, unknown>) };
+    throw new Error('400 exportLSU');
+  }
+  if (!res.ok) throw new Error(`${res.status} exportLSU`);
+  const disposition = res.headers.get('content-disposition') ?? '';
+  return { blob: await res.blob(), filename: (disposition.split('filename=')[1] ?? 'export-lsu.xml').replace(/"/g, '') };
+}
+
+export const getArchiveYears = (structureId: string, type: 'bfc' | 'bulletins') =>
+  getJson<ArchiveYears>(`/competences/archive/years?idStructure=${structureId}&type=${type}`);
+
+export const getArchivesBfc = async (structureId: string) =>
+  (await getJson<Array<{ id_annee: string; id_cycle: number }>>(`/competences/archive-bfc?idEtablissement=${structureId}`)) ?? [];
+
+export const getArchivesBulletins = async (structureId: string) =>
+  (await getJson<Array<{ id_annee: string; id_periode: number }>>(`/competences/archive-bulletin?idEtablissement=${structureId}`)) ?? [];
+
+/** Le zip des archives ; `null` s'il n'y a rien à archiver (204) ou si la génération est en cours (202). */
+export async function downloadArchives(structureId: string, type: 'bfc' | 'bulletins', year: string, periodes?: number[]) {
+  let url = `/competences/archive/${type}?idStructure=${structureId}&idYear=${year}`;
+  if (periodes) url += `&idsPeriode=${periodes.join(',')}`;
+  const res = await fetch(url, { credentials: 'include' });
+  if (!res.ok) throw new Error(`${res.status} archive`);
+  if (res.status !== 200) return { status: res.status as 202 | 204 };
+  const disposition = res.headers.get('content-disposition') ?? '';
+  return { status: 200 as const, blob: await res.blob(), filename: (disposition.split('filename=')[1] ?? `archives-${type}.zip`).replace(/"/g, '') };
 }

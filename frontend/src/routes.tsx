@@ -4,6 +4,7 @@ import { ConseilDeClasse } from './screens/ConseilDeClasse';
 import { DevoirFormScreen } from './screens/DevoirFormScreen';
 import { DevoirsList } from './screens/DevoirsList';
 import { Bulletins } from './screens/Bulletins';
+import { Exports } from './screens/Exports';
 import { NotMigrated } from './screens/NotMigrated';
 import { Projets } from './screens/Projets';
 import { Releve } from './screens/Releve';
@@ -41,7 +42,7 @@ export const routes: RouteObject[] = [
       { path: 'projets', element: <Projets /> },
 
       // ── Écrans restant à porter ───────────────────────────────────────────
-      { path: 'export', element: <NotMigrated /> },
+      { path: 'export', element: <Exports /> },
       { path: 'disabled', element: <NotMigrated /> },
       { path: 'bulletin', element: <Bulletins /> },
       { path: '*', element: <Navigate to="/" replace /> },

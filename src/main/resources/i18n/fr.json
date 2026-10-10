@@ -891,5 +891,15 @@
   "competences.react.bulletins.error": "La génération des bulletins a échoué.",
   "competences.react.bulletins.no.classe": "Aucune classe dont vous êtes professeur principal ou dont vous assurez le suivi.",
   "competences.react.bulletins.mention": "Libellé de la mention",
-  "competences.react.bulletins.orientation": "Libellé de l'avis d'orientation"
+  "competences.react.bulletins.orientation": "Libellé de l'avis d'orientation",
+  "competences.react.lsu.sts": "Fichier STS",
+  "competences.react.lsu.sts.none": "Aucun fichier STS enregistré",
+  "competences.react.lsu.sts.upload": "Importer un export STS-Web (XML)",
+  "competences.react.lsu.sts.invalid": "Ce fichier n'est pas un export STS-Web : aucun individu n'y figure.",
+  "competences.react.lsu.responsables": "Responsables de l'établissement",
+  "competences.react.lsu.responsables.none": "Aucun personnel de direction dans l'établissement.",
+  "competences.react.lsu.ignored": "Ignoré",
+  "competences.react.lsu.errors.hint": "Cochez « Ignoré » pour écarter un élève de l'export, sur chaque période, puis continuez.",
+  "competences.react.lsu.ignore.all": "Ignorer tous ces élèves",
+  "competences.react.archives.current.year": "(Année en cours)"
 }

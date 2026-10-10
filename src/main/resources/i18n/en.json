@@ -891,5 +891,15 @@
   "competences.react.bulletins.error": "Report card generation failed.",
   "competences.react.bulletins.no.classe": "No class for which you are head teacher or in charge.",
   "competences.react.bulletins.mention": "Mention label",
-  "competences.react.bulletins.orientation": "Orientation opinion label"
+  "competences.react.bulletins.orientation": "Orientation opinion label",
+  "competences.react.lsu.sts": "STS file",
+  "competences.react.lsu.sts.none": "No STS file saved",
+  "competences.react.lsu.sts.upload": "Import an STS-Web export (XML)",
+  "competences.react.lsu.sts.invalid": "This file is not an STS-Web export: it contains no individual.",
+  "competences.react.lsu.responsables": "School officials",
+  "competences.react.lsu.responsables.none": "No management staff in this school.",
+  "competences.react.lsu.ignored": "Ignored",
+  "competences.react.lsu.errors.hint": "Tick “Ignored” to leave a student out of the export, for each period, then continue.",
+  "competences.react.lsu.ignore.all": "Ignore all these students",
+  "competences.react.archives.current.year": "(Current year)"
 }

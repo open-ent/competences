@@ -152,6 +152,8 @@ export interface Annotation {
 /** Niveau de maîtrise, défaut du cycle et personnalisation de l'établissement mêlés. */
 export interface MaitriseLevel {
   id_cycle: number;
+  /** Libellé du cycle (« Cycle 4 »). */
+  cycle?: string;
   ordre: number;
   /** Personnalisation (nulle si l'établissement garde le défaut). */
   libelle: string | null;
