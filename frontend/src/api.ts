@@ -1,6 +1,6 @@
 // Client REST du module Compétences — session ENT, même origine.
 import type { NoteWrite } from './saisie';
-import type { CompetenceEvaluation, Conversion } from './suivi';
+import type { ClasseEvaluation, CompetenceEvaluation, Conversion } from './suivi';
 
 import type {
   Annotation,
@@ -381,3 +381,17 @@ export const saveNiveauFinal = (body: {
   id_competence: number;
   ids_matieres: string[];
 }) => send('POST', '/competences/competence/note/niveaufinal', body);
+
+/** Évaluations de compétences de toute la classe ; sans période, toute l'année. */
+export const getCompetenceNotesClasse = async (
+  classe: Pick<Classe, 'id' | 'type_groupe'>,
+  structureId: string,
+  periode: number | null,
+): Promise<ClasseEvaluation[]> =>
+  (await getJson<ClasseEvaluation[]>(
+    `/competences/competence/notes/classe/${classe.id}/${classe.type_groupe}?structureId=${structureId}${periode !== null ? `&idPeriode=${periode}` : ''}`,
+  )) ?? [];
+
+/** Arbre des domaines de la classe (sans élève). */
+export const getDomainesClasse = async (classId: string): Promise<DomaineSuivi[]> =>
+  (await getJson<DomaineSuivi[]>(`/competences/domaines?idClasse=${classId}`)) ?? [];

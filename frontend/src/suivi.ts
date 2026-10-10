@@ -191,3 +191,55 @@ export function nextFinal(current: number | undefined, nbLevels: number): number
 export function finalMatieres(evals: CompetenceEvaluation[], teachers: TeacherSubject[]): string[] {
   return [...new Set(evals.filter((e) => isMine(e, teachers) && !e.formative).map((e) => e.id_matiere))];
 }
+
+// ── Suivi de classe ──────────────────────────────────────────────────────────
+
+/** Une évaluation de compétence d'un élève de la classe (`GET /competence/notes/classe/:id/:type`). */
+export interface ClasseEvaluation {
+  id_eleve: string;
+  id_competence: number;
+  id_domaine: number;
+  evaluation: number;
+  niveau_final: number | null;
+  niveau_final_annuel: number | null;
+  id_matiere: string;
+  owner: string;
+}
+
+/**
+ * Niveau de chaque élève sur une compétence (`Utils.setCompetenceEvaluations`) : la même règle
+ * que le niveau final du suivi élève, élève par élève — meilleur niveau par matière (ou niveau
+ * final posé), moyenne des matières, conversion. « Mes évaluations » restreint aux miennes.
+ * Un élève sans évaluation notée vaut « non évalué » (−1).
+ */
+export function classeLevels(
+  evals: ClasseEvaluation[],
+  eleveIds: string[],
+  teachers: TeacherSubject[],
+  table: Conversion[],
+  options: { average: boolean; isYear: boolean; onlyMine: boolean },
+): Map<string, number> {
+  const counted = options.onlyMine ? evals.filter((e) => isMine(e, teachers)) : evals;
+  const result = new Map<string, number>();
+  for (const id of eleveIds) {
+    const own = counted
+      .filter((e) => e.id_eleve === id)
+      .map((e) => ({ ...e, formative: false, eval_lib_historise: false }) as unknown as CompetenceEvaluation);
+    result.set(id, own.length === 0 ? -1 : niveauOf(own, table, { average: options.average, isYear: options.isYear, onlyNote: false }));
+  }
+  return result;
+}
+
+/** Répartition des élèves par niveau, du « non évalué » (−1) au plus haut. */
+export function distribution(levels: Map<string, number>, maxValue: number): Array<{ value: number; count: number }> {
+  const counts = new Map<number, number>();
+  for (const v of levels.values()) counts.set(v, (counts.get(v) ?? 0) + 1);
+  return Array.from({ length: maxValue + 2 }, (_, i) => i - 1).map((value) => ({ value, count: counts.get(value) ?? 0 }));
+}
+
+/** `ClasseFilterNotEvaluated` : la compétence a-t-elle au moins une évaluation notée (des miennes si filtré) ? */
+export function classeShown(evals: ClasseEvaluation[], masque: boolean, onlyEvaluated: boolean, onlyMine: boolean, teachers: TeacherSubject[]): boolean {
+  if (!onlyEvaluated && !masque) return true;
+  const list = onlyMine ? evals.filter((e) => isMine(e, teachers)) : evals;
+  return list.some((e) => e.evaluation !== -1);
+}

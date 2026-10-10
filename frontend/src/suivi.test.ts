@@ -152,3 +152,44 @@ describe('affichage et niveau final', () => {
     ])).toEqual(['maths', 'fr']);
   });
 });
+
+describe('suivi de classe', () => {
+  const cev = (patch: Partial<import('./suivi').ClasseEvaluation> = {}) => ({
+    id_eleve: 'a',
+    id_competence: 7,
+    id_domaine: 5,
+    evaluation: 2,
+    niveau_final: null,
+    niveau_final_annuel: null,
+    id_matiere: 'maths',
+    owner: 'me',
+    ...patch,
+  });
+
+  it('niveau par élève, et « non évalué » pour qui n’a rien', async () => {
+    const { classeLevels, distribution } = await import('./suivi');
+    const levels = classeLevels(
+      [cev({ evaluation: 3 }), cev({ evaluation: 0 }), cev({ id_eleve: 'b', evaluation: 1, owner: 'other' })],
+      ['a', 'b', 'c'],
+      mine,
+      table,
+      { average: false, isYear: false, onlyMine: false },
+    );
+    expect([...levels.entries()]).toEqual([['a', 3], ['b', 1], ['c', -1]]);
+    expect(distribution(levels, 3)).toEqual([
+      { value: -1, count: 1 },
+      { value: 0, count: 0 },
+      { value: 1, count: 1 },
+      { value: 2, count: 0 },
+      { value: 3, count: 1 },
+    ]);
+  });
+
+  it('« mes évaluations » écarte celles des autres', async () => {
+    const { classeLevels, classeShown } = await import('./suivi');
+    const evals = [cev({ id_eleve: 'b', owner: 'other' })];
+    expect(classeLevels(evals, ['b'], mine, table, { average: false, isYear: false, onlyMine: true }).get('b')).toBe(-1);
+    expect(classeShown(evals, false, true, true, mine)).toBe(false);
+    expect(classeShown(evals, false, true, false, mine)).toBe(true);
+  });
+});
