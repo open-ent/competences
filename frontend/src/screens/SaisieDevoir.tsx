@@ -6,6 +6,7 @@ import { Link, useNavigate, useParams } from 'react-router-dom';
 
 import * as api from '../api';
 import { usePeriodeLabel } from '../features/Filters';
+import { ImportNotes } from '../features/ImportNotes';
 import { PrintDevoir } from '../features/PrintDevoir';
 import { AppreciationInput, NoteInput } from '../features/SaisieInputs';
 import { formatDate, isChefEtabOrHeadTeacher, isHeadTeacher } from '../rules';
@@ -39,7 +40,7 @@ const LEVEL_SAVE_DELAY = 700;
  * annotation, son niveau sur chaque compétence évaluée, et une appréciation. Rien n'est validé en
  * bloc : chaque case part dès qu'on la quitte, comme dans l'AngularJS.
  *
- * Impression : cartouches, grille de saisie, export. Pas encore porté : l'import de notes.
+ * Impression (cartouches, grille de saisie, export) et import de notes depuis un CSV d'Exercices.
  */
 export function SaisieDevoir() {
   const { t } = useTranslation(['competences', 'viescolaire', 'common']);
@@ -284,6 +285,7 @@ function SaisieView(props: SaisieViewProps) {
   const allSelected = selectable.length > 0 && selectable.every((e) => selectedEleves.has(e.id));
   const hasCompetences = competences.length > 0;
   const [printing, setPrinting] = useState(false);
+  const [importing, setImporting] = useState(false);
   const viewerId = useViewer()?.userId ?? '';
 
   return (
@@ -295,6 +297,11 @@ function SaisieView(props: SaisieViewProps) {
           {t('title')} : {devoir.name}
         </h1>
         <div className="d-flex flex-wrap gap-8">
+          {devoir.is_evaluated && (
+            <Button color="secondary" variant="outline" onClick={() => setImporting(true)} disabled={locked}>
+              {t('competences.import.notes.title')}
+            </Button>
+          )}
           <Button color="secondary" variant="outline" onClick={() => setPrinting(true)}>
             {t('competences.react.print')}
           </Button>
@@ -307,6 +314,7 @@ function SaisieView(props: SaisieViewProps) {
         </div>
       </div>
 
+      {importing && <ImportNotes devoir={devoir} onClose={() => setImporting(false)} onImported={() => void props.onRefresh()} />}
       {printing && <PrintDevoir devoirId={devoir.id} hasCompetences={hasCompetences} userId={viewerId} onClose={() => setPrinting(false)} />}
       {locked && <Alert type="warning">{t('evaluations.devoir.uncancelable')}</Alert>}
       {error && (

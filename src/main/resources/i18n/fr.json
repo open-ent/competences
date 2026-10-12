@@ -936,5 +936,6 @@
   "competences.react.releve.export.format": "Format",
   "competences.react.releve.export.notes": "Notes de chaque évaluation",
   "competences.react.releve.export.previous.averages": "Moyennes des périodes précédentes",
-  "competences.react.releve.export.previous.appreciations": "Appréciations des périodes précédentes"
+  "competences.react.releve.export.previous.appreciations": "Appréciations des périodes précédentes",
+  "competences.react.import.example": "Exemple de fichier CSV"
 }

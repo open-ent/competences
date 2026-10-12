@@ -936,5 +936,6 @@
   "competences.react.releve.export.format": "Format",
   "competences.react.releve.export.notes": "Marks of each assessment",
   "competences.react.releve.export.previous.averages": "Averages of previous periods",
-  "competences.react.releve.export.previous.appreciations": "Comments of previous periods"
+  "competences.react.releve.export.previous.appreciations": "Comments of previous periods",
+  "competences.react.import.example": "Sample CSV file"
 }

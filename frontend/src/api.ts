@@ -1010,3 +1010,27 @@ export async function exportReleve(body: Record<string, unknown> & { fileType: '
   if (!res.ok) throw new ExportError(`${res.status}`);
   return body.fileType === 'pdf' ? res.blob() : ((await res.json()) as ReleveExportData);
 }
+
+/**
+ * Import des notes d'une évaluation depuis un CSV (export d'Exercices) : `missing` liste les élèves
+ * du fichier que le serveur n'a pas reconnus ; `status: "formate"` signale un fichier illisible.
+ */
+export async function importNotesCsv(devoir: Pick<Devoir, 'id' | 'id_groupe' | 'type_groupe' | 'id_periode'>, file: File) {
+  const form = new FormData();
+  form.append('file', file, file.name);
+  const headers = xsrfHeaders();
+  delete headers['Content-Type'];
+  const res = await fetch(
+    `/competences/notes/1/csv/exercizer/import/classes/${devoir.id_groupe}/devoirs/${devoir.id}/${devoir.type_groupe}/periods/${devoir.id_periode}`,
+    { credentials: 'include', method: 'POST', headers, body: form },
+  );
+  let body: { status?: boolean | string; missing?: unknown[] } = {};
+  try {
+    body = await res.json();
+  } catch {
+    /* corps illisible */
+  }
+  if (!res.ok) return { kind: body.status === 'formate' ? ('formate' as const) : ('error' as const) };
+  if (!body.status) return { kind: 'error' as const };
+  return (body.missing ?? []).length > 0 ? { kind: 'missing' as const } : { kind: 'ok' as const };
+}
