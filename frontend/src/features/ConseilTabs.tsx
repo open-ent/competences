@@ -4,7 +4,7 @@ import { FormEvent, useId, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
 import * as api from '../api';
-import { Avis, avisOfType, avisSynthesePeriode, evenementsHistorique, EvenementLigne } from '../conseil';
+import { Avis, avisOfType, avisSynthesePeriode, digitalDomaines, evenementsHistorique, EvenementLigne } from '../conseil';
 import { graphRows } from '../graphiques';
 import { appreciationsByElement, elementTitle, MAX_PROJET_APPRECIATION } from '../projets';
 import { levelsForCycle } from '../saisie';
@@ -518,6 +518,118 @@ export function Graphiques({ classe, periode, eleveId }: Ctx) {
           {show.competences && section('evaluations.bilan.by.domaine', graphRows(domainesQuery.data ?? []), false)}
         </>
       )}
+    </div>
+  );
+}
+
+/**
+ * Onglet « Compétences numériques » (`diplay_digital_skills.html`), pour une classe de cycle 3 :
+ * le niveau de l'élève sur chaque compétence du référentiel, par domaine, et les appréciations de
+ * l'élève et de la classe.
+ */
+export function DigitalSkillsTab({ classe, eleveId, editable }: Ctx & { editable: boolean }) {
+  const { t } = useTranslation(['competences', 'viescolaire', 'common']);
+  const queryClient = useQueryClient();
+  const { structureId } = useStructure();
+  const [error, setError] = useState(false);
+  const key = ['competences', structureId, 'digital-skills', classe.id, eleveId];
+  const allQuery = useQuery({ queryKey: ['competences', structureId, 'digital-skills-ref'], queryFn: () => api.getDigitalSkills(structureId) });
+  const eleveQuery = useQuery({ queryKey: key, queryFn: () => api.getDigitalSkillsEleve(structureId, classe.id, eleveId) });
+  if (allQuery.isLoading || eleveQuery.isLoading) return <LoadingScreen position={false} />;
+  if (allQuery.isError || eleveQuery.isError) return <Alert type="danger">{t('evaluation.digital.skills.sync.error')}</Alert>;
+
+  const state = eleveQuery.data ?? {};
+  const domaines = digitalDomaines(allQuery.data ?? [], state.evaluatedDigitalSkills);
+  const run = async (write: () => Promise<unknown>) => {
+    try {
+      setError(false);
+      await write();
+    } catch {
+      setError(true);
+    } finally {
+      await queryClient.invalidateQueries({ queryKey: key });
+    }
+  };
+  const levelLabel = (level: number) => (level === 0 ? t('not.evaluated') : `${t('level')} ${level}`);
+
+  return (
+    <div className="d-flex flex-column gap-16">
+      {error && <Alert type="danger">{t('evaluation.digital.skills.save.error')}</Alert>}
+      <section className="card p-16">
+        <div className="table-responsive">
+          <table className="table align-middle mb-0">
+            <thead>
+              <tr>
+                <th scope="col" />
+                {[0, 1, 2, 3].map((level) => (
+                  <th key={level} scope="col" className="text-center">
+                    {levelLabel(level)}
+                  </th>
+                ))}
+              </tr>
+            </thead>
+            {domaines.map((d) => (
+              <tbody key={d.id}>
+                <tr>
+                  <th scope="rowgroup" colSpan={5} className="table-light">
+                    {d.libelle}
+                  </th>
+                </tr>
+                {d.skills.map((skill) => (
+                  <tr key={skill.id_digital_skill}>
+                    <th scope="row" className="fw-normal">
+                      {skill.libelle}
+                    </th>
+                    {[0, 1, 2, 3].map((level) => (
+                      <td key={level} className="text-center">
+                        <input
+                          type="radio"
+                          className="form-check-input"
+                          name={`digital-${skill.id_digital_skill}`}
+                          aria-label={`${skill.libelle} : ${levelLabel(level)}`}
+                          checked={skill.level === level}
+                          disabled={!editable}
+                          onChange={() => run(() => api.saveDigitalSkillLevel(structureId, eleveId, skill.id_digital_skill, level, skill.evaluationId))}
+                        />
+                      </td>
+                    ))}
+                  </tr>
+                ))}
+              </tbody>
+            ))}
+          </table>
+        </div>
+      </section>
+      <section className="card p-16 d-flex flex-column gap-12">
+        <div>
+          <h3 className="h6">{t('evaluation.bilan.periodique.digital.skills.appreciation.student')}</h3>
+          <AppreciationInput
+            label={t('evaluation.bilan.periodique.digital.skills.appreciation.student')}
+            value={state.studentAppreciation?.appreciation ?? ''}
+            disabled={!editable}
+            multiline
+            maxLength={MAX_600}
+            onCommit={async (value) => {
+              if (value !== (state.studentAppreciation?.appreciation ?? ''))
+                await run(() => api.saveDigitalAppreciationEleve(structureId, eleveId, value, state.studentAppreciation?.id));
+            }}
+          />
+        </div>
+        <div>
+          <h3 className="h6">{t('evaluation.bilan.periodique.digital.skills.appreciation.class')}</h3>
+          <AppreciationInput
+            label={t('evaluation.bilan.periodique.digital.skills.appreciation.class')}
+            value={state.classAppreciation?.appreciation ?? ''}
+            disabled={!editable}
+            multiline
+            maxLength={MAX_600}
+            onCommit={async (value) => {
+              if (value !== (state.classAppreciation?.appreciation ?? ''))
+                await run(() => api.saveDigitalAppreciationClasse(classe, value, state.classAppreciation?.id));
+            }}
+          />
+        </div>
+      </section>
     </div>
   );
 }

@@ -20,6 +20,7 @@ export const WORKFLOW = {
   canUpdateAppreciations: 'fr.openent.competences.controllers.ElementBilanPeriodiqueController|createAppreciationBilanPeriodique',
   canSaisiAppreciationCPE: 'fr.openent.competences.controllers.BilanPeriodiqueController|createOrUpdateAppreciationCPE',
   canUpdateRetardAndAbsence: 'fr.openent.competences.controllers.UtilsController|insertRetardOrAbscence',
+  canSaveDigitalSkills: 'fr.openent.competences.controllers.DigitalSkillsController|createOrUpdateLevelDigitalSkills',
   /** Bilan de fin de cycle : synthèse, dispense d'un domaine. */
   canUpdateBFCSynthese: 'fr.openent.competences.controllers.BFCController|createSyntheseWorfklow',
   createDispenseDomaineEleve: 'fr.openent.competences.controllers.DomaineController|createDispenseDomaineEleve',

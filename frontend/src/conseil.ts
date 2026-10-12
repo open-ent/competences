@@ -167,6 +167,7 @@ export function conseilRights(p: {
     canUpdateAppreciations: boolean;
     canSaisiAppreciationCPE: boolean;
     canUpdateRetardAndAbsence: boolean;
+    canSaveDigitalSkills?: boolean;
   };
 }) {
   const open = !p.published;
@@ -178,5 +179,47 @@ export function conseilRights(p: {
     appreciationsProjets: open && (w.canUpdateAppreciations || p.chefOrHeadTeacher),
     appreciationCPE: open && w.canSaisiAppreciationCPE,
     vieScolaire: open && w.canUpdateRetardAndAbsence,
+    digitalSkills: open && !!w.canSaveDigitalSkills,
   };
 }
+
+// ── Compétences numériques (cycle 3) ─────────────────────────────────────────
+
+/** Une compétence numérique du référentiel (`GET /competences/digitalSkills`). */
+export interface DigitalSkill {
+  id_digital_skill: number;
+  id_domaine: number;
+  libelle: string;
+  libelle_domaine: string;
+}
+
+/** État de l'élève (`GET /competences/digitalSkills/appreciations/evaluation`). */
+export interface DigitalSkillsEleve {
+  studentAppreciation?: { id?: number; appreciation?: string };
+  classAppreciation?: { id?: number; appreciation?: string };
+  evaluatedDigitalSkills?: Array<{ id: number; id_digital_skill: number; level: number }>;
+}
+
+export interface DigitalDomaine {
+  id: number;
+  libelle: string;
+  skills: Array<{ id_digital_skill: number; libelle: string; level: number; evaluationId?: number }>;
+}
+
+/** Compétences regroupées par domaine, avec le niveau de l'élève (0 = non évaluée). */
+export function digitalDomaines(all: DigitalSkill[], evaluated: DigitalSkillsEleve['evaluatedDigitalSkills']): DigitalDomaine[] {
+  const domaines: DigitalDomaine[] = [];
+  for (const s of all) {
+    let d = domaines.find((x) => x.id === s.id_domaine);
+    if (!d) {
+      d = { id: s.id_domaine, libelle: s.libelle_domaine, skills: [] };
+      domaines.push(d);
+    }
+    const e = (evaluated ?? []).find((x) => x.id_digital_skill === s.id_digital_skill);
+    d.skills.push({ id_digital_skill: s.id_digital_skill, libelle: s.libelle, level: e?.level ?? 0, evaluationId: e?.id });
+  }
+  return domaines;
+}
+
+/** L'onglet n'existe que pour une CLASSE de cycle 3 (`isClassAndCycle3`). */
+export const hasDigitalSkills = (classe: { type_groupe: number; id_cycle?: number | null }) => classe.type_groupe === 0 && classe.id_cycle === 2;

@@ -113,6 +113,7 @@ describe('droits du conseil', () => {
       appreciationsProjets: true,
       appreciationCPE: false,
       vieScolaire: false,
+      digitalSkills: false,
     });
   });
 
@@ -123,5 +124,29 @@ describe('droits du conseil', () => {
 
   it('tout est figé une fois les bulletins publiés', () => {
     expect(Object.values(conseilRights({ published: true, chefOrHeadTeacher: true, hasService: true, workflow: all })).some(Boolean)).toBe(false);
+  });
+});
+
+import { digitalDomaines, hasDigitalSkills } from './conseil';
+
+describe('compétences numériques', () => {
+  it('regroupe par domaine et reporte le niveau de l’élève, 0 à défaut', () => {
+    const all = [
+      { id_digital_skill: 4, id_domaine: 1, libelle: 'Mener une recherche', libelle_domaine: 'Information et données' },
+      { id_digital_skill: 9, id_domaine: 2, libelle: 'Interagir', libelle_domaine: 'Communication' },
+      { id_digital_skill: 7, id_domaine: 1, libelle: 'Gérer des données', libelle_domaine: 'Information et données' },
+    ];
+    const domaines = digitalDomaines(all, [{ id: 31, id_digital_skill: 7, level: 2 }]);
+    expect(domaines.map((d) => [d.libelle, d.skills.map((s) => s.level)])).toEqual([
+      ['Information et données', [0, 2]],
+      ['Communication', [0]],
+    ]);
+    expect(domaines[0].skills[1].evaluationId).toBe(31);
+  });
+
+  it('réservé aux classes de cycle 3', () => {
+    expect(hasDigitalSkills({ type_groupe: 0, id_cycle: 2 })).toBe(true);
+    expect(hasDigitalSkills({ type_groupe: 0, id_cycle: 1 })).toBe(false);
+    expect(hasDigitalSkills({ type_groupe: 1, id_cycle: 2 })).toBe(false);
   });
 });

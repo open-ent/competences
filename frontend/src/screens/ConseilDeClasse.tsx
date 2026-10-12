@@ -4,9 +4,9 @@ import { useEffect, useId, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
 import * as api from '../api';
-import { acquisRow, conseilRights, isEmptyRow, moyenneGenerale } from '../conseil';
+import { acquisRow, conseilRights, hasDigitalSkills, isEmptyRow, moyenneGenerale } from '../conseil';
 import { BilanFinCycle } from '../features/BilanFinCycle';
-import { AvisPanel, Graphiques, ProjetsEleve, Synthese, VieScolaire } from '../features/ConseilTabs';
+import { AvisPanel, DigitalSkillsTab, Graphiques, ProjetsEleve, Synthese, VieScolaire } from '../features/ConseilTabs';
 import { ClasseSelect, StructureSelect, usePeriodeLabel } from '../features/Filters';
 import { AppreciationInput } from '../features/SaisieInputs';
 import { formatMoyenne, MAX_APPRECIATION } from '../releve';
@@ -22,7 +22,7 @@ import type { PeriodeClasse } from '../types';
  * compétences validées.
  *
  * Onglets portés : suivi des acquis (avec la synthèse), projets, vie scolaire ; avis du conseil
- * et d'orientation à côté ; graphiques ; bilan de fin de cycle.
+ * et d'orientation à côté ; graphiques ; bilan de fin de cycle ; compétences numériques (cycle 3).
  */
 export function ConseilDeClasse() {
   const { t } = useTranslation(['competences', 'viescolaire', 'common']);
@@ -146,7 +146,7 @@ export function ConseilDeClasse() {
   );
 }
 
-type ConseilTab = 'acquis' | 'projets' | 'vie' | 'graphiques' | 'bfc';
+type ConseilTab = 'acquis' | 'projets' | 'vie' | 'graphiques' | 'bfc' | 'numerique';
 const TABS: Array<{ id: ConseilTab; label: string }> = [
   { id: 'acquis', label: 'evaluation.bilan.periodique.suivi.acquis' },
   { id: 'projets', label: 'evaluation.bilan.periodique.projets' },
@@ -184,7 +184,7 @@ function ConseilEleve({
       {periode.publication_bulletin && <Alert type="info">{t('competences.react.conseil.published')}</Alert>}
       <AvisPanel {...ctx} editable={can.avis} />
       <div className="d-flex flex-wrap gap-8 align-items-center" role="tablist" aria-label={t('evaluations.conseil.de.classe')}>
-        {TABS.map((x) => (
+        {[...TABS, ...(hasDigitalSkills(classe) ? [{ id: 'numerique' as const, label: 'evaluation.bilan.periodique.digital.skills' }] : [])].map((x) => (
           <button
             key={x.id}
             type="button"
@@ -206,6 +206,7 @@ function ConseilEleve({
       {tab === 'projets' && <ProjetsEleve {...ctx} editable={can.appreciationsProjets} />}
       {tab === 'vie' && <VieScolaire {...ctx} canEdit={can.vieScolaire} canAppreciation={can.appreciationCPE} />}
       {tab === 'bfc' && <BilanFinCycle classe={classe} eleveId={eleveId} />}
+      {tab === 'numerique' && hasDigitalSkills(classe) && <DigitalSkillsTab {...ctx} editable={can.digitalSkills} />}
       {tab === 'graphiques' && (
         <>
           <Graphiques {...ctx} />

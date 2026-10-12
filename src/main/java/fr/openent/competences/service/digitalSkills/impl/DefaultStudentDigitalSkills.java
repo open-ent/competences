@@ -55,10 +55,13 @@ public class DefaultStudentDigitalSkills extends SqlCrudService implements Stude
     public void getEvaluatedDigitalSkills(String idStudent, String idStructure,
                                           Handler<Either<String, JsonArray>> handler) {
         StringBuilder query = new StringBuilder();
-        query.append("SELECT * FROM ").append(this.schema).append(this.table)
-                .append(" INNER JOIN ").append(Competences.COMPETENCES_SCHEMA).append(".").append(Competences.DIGITAL_SKILLS_TABLE)
-                .append(" ds ON ds.id = id_digital_skill")
-                .append(" WHERE student_id = ? AND structure_id = ?");
+        // Colonnes NOMMÉES : avec « SELECT * », l'id de la compétence numérique (ds.id) écrasait celui
+        // de l'évaluation, et l'interface supprimait ensuite la ligne d'identifiant ds.id — au
+        // besoin l'évaluation d'un autre élève.
+        query.append("SELECT sds.*, ds.id_domaine, ds.libelle, ds.code FROM ").append(this.schema).append(this.table)
+                .append(" sds INNER JOIN ").append(Competences.COMPETENCES_SCHEMA).append(".").append(Competences.DIGITAL_SKILLS_TABLE)
+                .append(" ds ON ds.id = sds.id_digital_skill")
+                .append(" WHERE sds.student_id = ? AND sds.structure_id = ?");
 
         JsonArray values = new JsonArray().add(idStudent).add(idStructure);
 

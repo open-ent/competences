@@ -1,6 +1,6 @@
 // Client REST du module Compétences — session ENT, même origine.
 import type { NoteWrite } from './saisie';
-import type { AcquisRaw, AvisSyntheses, Evenement } from './conseil';
+import type { AcquisRaw, AvisSyntheses, DigitalSkill, DigitalSkillsEleve, Evenement } from './conseil';
 import { parseLsuErrors } from './lsu';
 import type { ArchiveYears, LsuErrors, StsFile, UnheededStudent } from './lsu';
 import { mergeDevoirs } from './family';
@@ -831,3 +831,37 @@ export const saveEleveEnsCpl = (id: number | undefined, eleveId: string, idCycle
   };
   return id ? send('PUT', `/competences/UpdateNiveauEnsCpl?id=${id}`, body) : send('POST', '/competences/CreateNiveauEnsCpl', body);
 };
+
+// ── Compétences numériques (conseil de classe, cycle 3) ──────────────────────
+
+export const getDigitalSkills = async (structureId: string): Promise<DigitalSkill[]> =>
+  (await getJson<DigitalSkill[]>(`/competences/digitalSkills?idStructure=${structureId}`)) ?? [];
+
+export const getDigitalSkillsEleve = async (structureId: string, classeId: string, eleveId: string): Promise<DigitalSkillsEleve> =>
+  (await getJson<DigitalSkillsEleve>(
+    `/competences/digitalSkills/appreciations/evaluation?idStructure=${structureId}&idStudent=${eleveId}&idClass=${classeId}`,
+  )) ?? {};
+
+/** Niveau 1 à 3 ; 0 retire l'évaluation (`EvaluatedDigitalSkills.save`). */
+export const saveDigitalSkillLevel = (structureId: string, eleveId: string, idSkill: number, level: number, evaluationId?: number) =>
+  level !== 0
+    ? send('POST', '/competences/digitalSkills', { id_digital_skill: idSkill, id_student: eleveId, id_structure: structureId, level })
+    : evaluationId
+      ? send('DELETE', `/competences/digitalSkills?idDigSkill=${evaluationId}`)
+      : Promise.resolve(null);
+
+/** Appréciation de l'élève ; vide, elle est supprimée. */
+export const saveDigitalAppreciationEleve = (structureId: string, eleveId: string, appreciation: string, id?: number) =>
+  appreciation !== ''
+    ? send('POST', '/competences/studentAppreciationDigitalSkills', { id_student: eleveId, id_structure: structureId, appreciation })
+    : id
+      ? send('DELETE', `/competences/studentAppreciationDigitalSkills?idStudentApp=${id}`)
+      : Promise.resolve(null);
+
+/** Appréciation de la classe (`D`) ou du groupe (`G`) ; vide, elle est supprimée. */
+export const saveDigitalAppreciationClasse = (classe: Pick<Classe, 'id' | 'type_groupe'>, appreciation: string, id?: number) =>
+  appreciation !== ''
+    ? send('POST', '/competences/classAppreciationDigitalSkills', { id_class: classe.id, id_type_structure: classe.type_groupe === 0 ? 'D' : 'G', appreciation })
+    : id
+      ? send('DELETE', `/competences/classAppreciationDigitalSkills?idClassApp=${id}`)
+      : Promise.resolve(null);
