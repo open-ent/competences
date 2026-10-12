@@ -1050,3 +1050,17 @@ export const getTableauMoyennes = (structureId: string, classe: Pick<Classe, 'id
     idPeriodes: [],
     typeClasse: classe.type_groupe,
   });
+
+/**
+ * Dépose l'image d'un bilan par domaine. Comme l'AngularJS, le fichier contient l'URL de données
+ * de l'image (« data:image/png;base64,… ») : le serveur l'insère telle quelle dans le PDF.
+ */
+export async function uploadGraphImage(dataUrl: string): Promise<string> {
+  const form = new FormData();
+  form.append('file', new Blob([dataUrl], { type: 'image/png' }));
+  const headers = xsrfHeaders();
+  delete headers['Content-Type'];
+  const res = await fetch('/competences/graph/img', { credentials: 'include', method: 'POST', headers, body: form });
+  if (!res.ok) throw new Error(`${res.status} graph/img`);
+  return ((await res.json()) as { _id: string })._id;
+}

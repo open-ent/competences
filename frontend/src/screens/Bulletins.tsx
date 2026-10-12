@@ -4,10 +4,12 @@ import { useEffect, useId, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
 import * as api from '../api';
+import { drawDomaineChart } from '../features/bulletinGraph';
+import { graphRows } from '../graphiques';
 import { BULLETIN_OPTIONS, bulletinBody, bulletinPeriodes, orientationDefaultKey, PrintOptions } from '../bulletins';
 import { StructureSelect, usePeriodeLabel } from '../features/Filters';
 import { isChefEtabOrHeadTeacher, sortClasses } from '../rules';
-import { sortEleves } from '../saisie';
+import { levelsForCycle, sortEleves } from '../saisie';
 import { useStructure, useStructureData, useViewer } from '../structure';
 import type { EleveDevoir } from '../types';
 
@@ -18,9 +20,9 @@ type Student = EleveDevoir & { idClasse: string; classeName: string };
  * deux pages, puis un PDF par classe, produit par le serveur. Les options choisies sont
  * mémorisées dans la même préférence que l'AngularJS (`competences.printBulletin`).
  *
- * Pas encore portés : le bilan par domaine avec ses graphiques (dessinés dans le navigateur puis
- * envoyés en images), les modèles d'options enregistrés, l'envoi du logo et de la signature (ceux
- * déjà enregistrés pour l'établissement sont bien utilisés).
+ * Le bilan par domaine se dessine ici, un graphique par élève, puis se dépose sur le serveur qui
+ * l'insère dans le PDF. Pas encore portés : les modèles d'options enregistrés, l'envoi du logo et
+ * de la signature (ceux déjà enregistrés pour l'établissement sont bien utilisés).
  */
 export function Bulletins() {
   const { t } = useTranslation(['competences', 'viescolaire', 'common']);
@@ -116,6 +118,21 @@ export function Bulletins() {
       for (const classe of chosen) {
         const ids = selectedStudents.filter((s) => s.idClasse === classe.id).map((s) => s.id);
         if (ids.length === 0 || !periode) continue;
+        // Bilan par domaine : une image par élève, dessinée ici puis déposée sur le serveur.
+        let graphImages: Record<string, string> | undefined;
+        if (print.showBilanPerDomaines === true && print.simple !== true) {
+          const levels = levelsForCycle((await api.getMaitriseLevels(structureId)) ?? [], classe.id_cycle);
+          graphImages = {};
+          for (const eleveId of ids) {
+            const rows = graphRows(await api.getGraphData('domaine', structureId, classe, eleveId, periode.id_type));
+            const image = drawDomaineChart(rows, levels, {
+              withLevelsStudent: print.withLevelsStudent === true,
+              withLevelsClass: print.withLevelsClass === true,
+              labels: { student: t('level.student'), classe: t('level.class'), axis: t('level.items') },
+            });
+            graphImages[eleveId] = await api.uploadGraphImage(image);
+          }
+        }
         const result = await api.generateBulletins(
           bulletinBody(print, {
             structureId,
@@ -127,6 +144,7 @@ export function Bulletins() {
             orientationOpinion: orientation,
             otherTeacherName: other ? ` : ${other.displayName}` : '',
             images: { imgStructure: infosQuery.data?.imgStructure?.path, imgSignature: infosQuery.data?.nameAndBrad?.path },
+            graphImages,
           }),
         );
         if ('conflict' in result) {
@@ -284,6 +302,15 @@ export function Bulletins() {
         <fieldset>
           <legend className="h6">{t('evaluations.page.one')}</legend>
           <div className="row g-8">{BULLETIN_OPTIONS.page1.map(checkbox)}</div>
+          <div className="row g-8 mt-4">
+            {checkbox(['showBilanPerDomaines', 'show.bilan.per.domaines'] as const)}
+            {flag('showBilanPerDomaines') && (
+              <>
+                {checkbox(['withLevelsStudent', 'show.with.level.student'] as const)}
+                {checkbox(['withLevelsClass', 'show.with.level.class'] as const)}
+              </>
+            )}
+          </div>
         </fieldset>
         <div className="row g-8">
           <div className="col-12 col-md-4 form-check">

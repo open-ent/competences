@@ -51,3 +51,26 @@ describe('bulletins', () => {
     expect(otherTeacherName(undefined)).toBe('');
   });
 });
+
+describe('bilan par domaine', () => {
+  const ctx = {
+    structureId: 's',
+    classeId: 'c',
+    classeName: '4A',
+    periode: { id_type: 1, type: 2, ordre: 1, classes: ['c'] },
+    studentIds: ['e1'],
+    mentionOpinion: '',
+    orientationOpinion: '',
+    images: {},
+  };
+
+  it('les images déposées accompagnent la demande, et leurs identifiants à supprimer ensuite', () => {
+    const body = bulletinBody({ showBilanPerDomaines: true }, { ...ctx, graphImages: { e1: 'img1' } });
+    expect(body).toMatchObject({ showBilanPerDomaines: true, images: { e1: 'img1' }, idImagesFiles: ['img1'] });
+  });
+
+  it('pas de bilan par domaine sur le bulletin de lycée, ni sans image', () => {
+    expect(bulletinBody({ showBilanPerDomaines: true, simple: true }, { ...ctx, graphImages: { e1: 'img1' } }).showBilanPerDomaines).toBe(false);
+    expect(bulletinBody({ showBilanPerDomaines: true }, ctx).showBilanPerDomaines).toBe(false);
+  });
+});

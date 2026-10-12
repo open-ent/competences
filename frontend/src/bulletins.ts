@@ -90,6 +90,8 @@ export function bulletinBody(
     orientationOpinion: string;
     otherTeacherName?: string;
     images: { imgStructure?: string; imgSignature?: string };
+    /** Bilan par domaine : l'image déposée pour chaque élève (`graph/img`). */
+    graphImages?: Record<string, string>;
   },
 ): Record<string, unknown> {
   const flag = (k: string) => options[k] === true;
@@ -100,14 +102,15 @@ export function bulletinBody(
     idStructure: ctx.structureId,
     idPeriode: ctx.periode.id_type,
     typePeriode: ctx.periode.type,
-    images: {},
+    images: ctx.graphImages ?? {},
     nameCE: options.nameCE ?? '',
     imgStructure: ctx.images.imgStructure ?? '',
     hasImgStructure: !!ctx.images.imgStructure,
     imgSignature: ctx.images.imgSignature ?? '',
     hasImgSignature: !!ctx.images.imgSignature,
     useModel: flag('useModel'),
-    showBilanPerDomaines: false,
+    // Le bilan par domaine n'existe pas sur le bulletin de lycée (`simple`).
+    showBilanPerDomaines: flag('showBilanPerDomaines') && !flag('simple') && !!ctx.graphImages,
     mentionOpinion: ctx.mentionOpinion,
     orientationOpinion: ctx.orientationOpinion,
     addOtherTeacher: flag('addOtherTeacher'),
@@ -116,6 +119,7 @@ export function bulletinBody(
   };
   for (const group of Object.values(BULLETIN_OPTIONS)) for (const [k] of group) body[k] = flag(k);
   if (body.useModel) body.idModel = options.idModel;
+  if (body.showBilanPerDomaines) body.idImagesFiles = Object.values(ctx.graphImages ?? {});
   const subColumns = flag('moyenneClasseSousMat') || flag('moyenneEleveSousMat') || flag('positionnementSousMat');
   body.printSousMatieres = subColumns && (flag('moyenneClasse') || flag('moyenneEleve') || flag('positionnement'));
   return body;
