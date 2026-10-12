@@ -1,11 +1,11 @@
 import { Alert, Button, LoadingScreen, Modal } from '@open-ent/react';
-import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { useQueries, useQuery, useQueryClient } from '@tanstack/react-query';
 import { FormEvent, useId, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
 import * as api from '../api';
 import { Avis, avisOfType, avisSynthesePeriode, digitalDomaines, evenementsHistorique, EvenementLigne } from '../conseil';
-import { graphRows } from '../graphiques';
+import { comparisonSeries, graphRows } from '../graphiques';
 import { appreciationsByElement, elementTitle, MAX_PROJET_APPRECIATION } from '../projets';
 import { levelsForCycle } from '../saisie';
 import { useStructure } from '../structure';
@@ -431,9 +431,11 @@ const COLORS = { eleve: '#00ADF9', classe: '#787c87', min: '#46BFBD', max: '#fd9
 /**
  * Onglet « Graphiques » (`display_graphiques.html`) : par matière puis par domaine, en bâtons ou
  * en radar, les niveaux de compétence (élève, classe, répartition) et, pour les matières, les
- * moyennes. Pas encore portée : la comparaison entre périodes.
+ * moyennes ; ou la comparaison de l'élève entre plusieurs périodes.
  */
-export function Graphiques({ classe, periode, eleveId }: Ctx) {
+const PERIODE_COLORS = ['#00ADF9', '#fd9236', '#dc151c', '#46BFBD', '#949fb1', '#5f626c'];
+
+export function Graphiques({ classe, periode, eleveId, periodes }: Ctx) {
   const { t } = useTranslation(['competences', 'viescolaire', 'common']);
   const { structureId } = useStructure();
   const [type, setType] = useState<'baton' | 'radar'>('baton');
@@ -449,6 +451,20 @@ export function Graphiques({ classe, periode, eleveId }: Ctx) {
   const levelsQuery = useQuery({ queryKey: ['competences', structureId, 'maitrise'], queryFn: () => api.getMaitriseLevels(structureId) });
   const levels = levelsForCycle(levelsQuery.data ?? [], classe.id_cycle);
   const Chart = type === 'radar' ? RadarChart : BarChart;
+  const periodeLabel = usePeriodeLabel();
+  const [comparing, setComparing] = useState(false);
+  const [compared, setCompared] = useState<Set<number>>(() => new Set(periodes.map((p) => p.id_type)));
+  const chosen = periodes.filter((p) => compared.has(p.id_type));
+  const comparisonQueries = useQueries({
+    queries: comparing
+      ? chosen.flatMap((p) =>
+          (['matiere', 'domaine'] as const).map((kind) => ({
+            queryKey: ['competences', structureId, 'graph', kind, classe.id, eleveId, p.id_type],
+            queryFn: () => api.getGraphData(kind, structureId, classe, eleveId, p.id_type),
+          })),
+        )
+      : [],
+  });
   // Au moins un des deux affichages reste coché (`unlessOneChecked`).
   const toggle = (k: 'competences' | 'notes') => setShow((s) => (s[k] && !s[k === 'notes' ? 'competences' : 'notes'] ? s : { ...s, [k]: !s[k] }));
 
@@ -489,9 +505,25 @@ export function Graphiques({ classe, periode, eleveId }: Ctx) {
     );
   };
 
+  const comparison = (kind: 'matiere' | 'domaine', title: string, value: (r: ReturnType<typeof graphRows>[number]) => number | null, max: number, step: number) => {
+    const byPeriode = chosen.map((p, i) => ({
+      label: periodeLabel({ id: p.id_type, type: p.type, ordre: p.ordre }),
+      rows: graphRows((comparisonQueries[i * 2 + (kind === 'domaine' ? 1 : 0)]?.data as never) ?? []),
+    }));
+    const { categories, series } = comparisonSeries(byPeriode, value);
+    if (categories.length === 0) return <Alert type="info">{t('competences.react.graph.empty')}</Alert>;
+    return <Chart title={title} categories={categories} series={series.map((x, i) => ({ ...x, color: PERIODE_COLORS[i % PERIODE_COLORS.length] }))} max={max} step={step} />;
+  };
+
   return (
     <div className="d-flex flex-column gap-16">
       <div className="d-flex flex-wrap gap-16 align-items-center">
+        <div className="form-check form-switch">
+          <input id="graph-comparison" type="checkbox" role="switch" className="form-check-input" checked={comparing} onChange={(e) => setComparing(e.target.checked)} />
+          <label htmlFor="graph-comparison" className="form-check-label">
+            {t('evaluation.bilan.periodique.open.comparison')}
+          </label>
+        </div>
         <div className="btn-group" role="group" aria-label={t('competences.react.graph.type')}>
           {(['baton', 'radar'] as const).map((v) => (
             <button key={v} type="button" className={`btn btn-sm ${type === v ? 'btn-primary' : 'btn-outline-primary'}`} aria-pressed={type === v} onClick={() => setType(v)}>
@@ -508,7 +540,60 @@ export function Graphiques({ classe, periode, eleveId }: Ctx) {
           </div>
         ))}
       </div>
-      {matieresQuery.isLoading || domainesQuery.isLoading ? (
+      {comparing && (
+        <fieldset className="d-flex flex-wrap gap-12">
+          <legend className="h6 w-100 mb-0">{t('evaluation.comparison.options')}</legend>
+          {periodes.map((p) => (
+            <div key={p.id_type} className="form-check">
+              <input
+                id={`graph-compare-${p.id_type}`}
+                type="checkbox"
+                className="form-check-input"
+                checked={compared.has(p.id_type)}
+                onChange={() =>
+                  setCompared((sel) => {
+                    const next = new Set(sel);
+                    if (next.has(p.id_type)) next.delete(p.id_type);
+                    else next.add(p.id_type);
+                    return next;
+                  })
+                }
+              />
+              <label htmlFor={`graph-compare-${p.id_type}`} className="form-check-label">
+                {periodeLabel({ id: p.id_type, type: p.type, ordre: p.ordre })}
+              </label>
+            </div>
+          ))}
+        </fieldset>
+      )}
+      {comparing ? (
+        chosen.length < 2 ? (
+          <Alert type="info">{t('evaluations.choose.at.least.two.periode')}</Alert>
+        ) : comparisonQueries.some((q) => q.isLoading) ? (
+          <LoadingScreen position={false} />
+        ) : (
+          <>
+            {show.competences && (
+              <section className="card p-16 d-flex flex-column gap-12">
+                <h3 className="h6 mb-0">{t('evaluations.bilan.by.subject')}</h3>
+                {comparison('matiere', `${t('evaluations.bilan.by.subject')} — ${t('level.student')}`, (r) => r.niveauEleve, 4, 1)}
+              </section>
+            )}
+            {show.notes && (
+              <section className="card p-16 d-flex flex-column gap-12">
+                <h3 className="h6 mb-0">{t('evaluations.bilan.by.subject')}</h3>
+                {comparison('matiere', `${t('evaluations.bilan.by.subject')} — ${t('average.student')}`, (r) => r.moyenneEleve, 20, 2)}
+              </section>
+            )}
+            {show.competences && (
+              <section className="card p-16 d-flex flex-column gap-12">
+                <h3 className="h6 mb-0">{t('evaluations.bilan.by.domaine')}</h3>
+                {comparison('domaine', `${t('evaluations.bilan.by.domaine')} — ${t('level.student')}`, (r) => r.niveauEleve, 4, 1)}
+              </section>
+            )}
+          </>
+        )
+      ) : matieresQuery.isLoading || domainesQuery.isLoading ? (
         <LoadingScreen position={false} />
       ) : matieresQuery.isError || domainesQuery.isError ? (
         <Alert type="danger">{t('competences.react.loading.error')}</Alert>

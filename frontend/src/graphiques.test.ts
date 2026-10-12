@@ -27,3 +27,23 @@ describe('graphiques du conseil', () => {
     expect(rows[1]).toMatchObject({ label: 'D1.4', niveauEleve: 4, moyenneEleve: null, repartition: [0, 0, 0, 100] });
   });
 });
+
+import { comparisonSeries } from './graphiques';
+
+describe('comparaison entre périodes', () => {
+  it('une série par période, sur l’union des matières', () => {
+    const row = (label: string, niveauEleve: number) => ({ label, niveauEleve, niveauClasse: 0, repartition: [0, 0, 0, 0], moyenneEleve: null, moyenneClasse: null, min: null, max: null });
+    const r = comparisonSeries(
+      [
+        { label: 'T1', rows: [row('Maths', 3)] },
+        { label: 'T2', rows: [row('Maths', 4), row('Anglais', 2)] },
+      ],
+      (x) => x.niveauEleve,
+    );
+    expect(r.categories).toEqual(['Maths', 'Anglais']);
+    expect(r.series).toEqual([
+      { label: 'T1', values: [3, null] },
+      { label: 'T2', values: [4, 2] },
+    ]);
+  });
+});

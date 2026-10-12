@@ -80,3 +80,19 @@ export function graphRows(entries: GraphEntry[]): GraphRow[] {
       max: num(e.classMax),
     }));
 }
+
+/**
+ * Comparaison entre périodes (`ComparisonGraph.buildComparisonGraph`) : pour chaque matière ou
+ * domaine présent sur au moins une période, la valeur de l'élève sur chacune — une série par
+ * période, `null` quand la matière n'y figure pas.
+ */
+export function comparisonSeries(
+  byPeriode: Array<{ label: string; rows: GraphRow[] }>,
+  value: (r: GraphRow) => number | null,
+): { categories: string[]; series: Array<{ label: string; values: Array<number | null> }> } {
+  const categories = [...new Set(byPeriode.flatMap((p) => p.rows.map((r) => r.label)))];
+  return {
+    categories,
+    series: byPeriode.map((p) => ({ label: p.label, values: categories.map((c) => { const r = p.rows.find((x) => x.label === c); return r ? value(r) : null; }) })),
+  };
+}
