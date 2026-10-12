@@ -160,3 +160,130 @@ export function releveCsv(o: ReleveExportOptions, data: ReleveExportData, ctx: C
   if (o.appreciationClasse) lines.push(`${ctx.t('evaluations.releve.appreciation.classe')};${cell(data.appreciation_classe?.appreciation ?? '')}`);
   return `﻿${header.join('; ')}\r\n${lines.join('\r\n')}\r\n`;
 }
+
+// ── Suivi de classe : récapitulatif des niveaux en CSV ───────────────────────
+
+/** Réponse JSON du récapitulatif (`recapEval/print/:classe/export?json=true`). */
+export interface RecapEvalData {
+  classe: string;
+  periode: string;
+  domaines?: Array<{ codification?: string; libelle: string }>;
+  eleves?: Array<{ nom?: string; notes?: Array<{ moyenne?: string }> }>;
+}
+
+/**
+ * `prepareBodyPositioningForCsv` : classe et période, une ligne de codes de domaines, une ligne par
+ * élève avec sa moyenne de niveaux par domaine, puis la légende des domaines.
+ */
+export function recapEvalCsv(data: RecapEvalData, t: (key: string) => string): string {
+  const rows: string[][] = [
+    [`${t('evaluations.classe.groupe')} : `, data.classe],
+    [`${t('viescolaire.utils.periode')} : `, data.periode],
+  ];
+  const domaines = data.domaines ?? [];
+  if (domaines.length > 0) rows.push(['', ...domaines.map((d) => d.codification ?? '')]);
+  if (data.eleves) {
+    for (const e of data.eleves) rows.push([e.nom ?? '', ...(e.notes ?? []).map((n) => n.moyenne ?? '')]);
+    rows.push([]);
+    for (const d of domaines) rows.push([`${d.codification ?? ''} /${d.libelle}`]);
+  }
+  return `\ufeff${rows.map((r) => r.join(';')).join('\n')}`;
+}
+
+// ── Suivi de classe : tableau des moyennes en CSV (`ReleveNoteTotale.export`) ─
+
+export interface TableauOptions {
+  moyenneMat: boolean;
+  positionnementFinal: boolean;
+  averageFinal: boolean;
+  statistiques: boolean;
+  appreciation: boolean;
+  avisConseil: boolean;
+  avisOrientation: boolean;
+}
+
+type Stat = { moyenne?: any; minimum?: unknown; maximum?: unknown };
+
+/** Réponse de `POST /competences/releve/exportTotale` pour une période. */
+export interface TableauData {
+  eleves: Array<{
+    displayName: string;
+    moyenneFinale?: Record<string, unknown>;
+    positionnement?: Record<string, unknown>;
+    moyenne_generale?: unknown;
+    synthese_bilan_periodique?: string;
+    avis_conseil_de_classe?: string;
+    avis_conseil_orientation?: string;
+  }>;
+  /** Par matière, et `moyenne_generale` pour la moyenne générale. */
+  statistiques: Record<string, ({ moyenne?: Stat; positionnement?: Stat } & Stat) | undefined>;
+}
+
+const fr = (v: unknown) => String(v).replace(/\./g, ',');
+const isNN = (s?: Stat) => !s || s.moyenne == null || [s.moyenne, s.minimum, s.maximum].some((v) => v === 'NN');
+
+/**
+ * Le tableau des moyennes : une colonne (moyenne et/ou positionnement) par matière notée sur la
+ * période, la ligne des enseignants, une ligne par élève, puis moyenne, minimum et maximum de la
+ * classe. Les matières sans note ni positionnement sont écartées, comme dans l'AngularJS.
+ */
+export function tableauMoyennesCsv(
+  data: TableauData,
+  matieres: Array<{ id: string; name: string }>,
+  o: TableauOptions,
+  ctx: { t: (key: string) => string; classeName: string; periodeName: string; teachersOf: (matiereId: string) => string },
+): string | null {
+  const st = data.statistiques;
+  const notees = matieres.filter((m) => !isNN(st[m.id]?.moyenne) || !isNN(st[m.id]?.positionnement));
+  if (notees.length === 0) return null;
+  const header = [ctx.t('matieres')];
+  const teachers = [ctx.t('teachers')];
+  for (const m of notees) {
+    if (o.moyenneMat) {
+      header.push(m.name);
+      teachers.push(ctx.teachersOf(m.id));
+    }
+    if (o.positionnementFinal) {
+      header.push(m.name);
+      teachers.push(ctx.teachersOf(m.id));
+    }
+  }
+  if (o.averageFinal) header.push(ctx.t('average.min'));
+  if (o.appreciation) header.push(ctx.t('viescolaire.utils.appreciations'));
+  if (o.avisConseil) header.push(ctx.t('evaluations.evaluation.avis.conseil'));
+  if (o.avisOrientation) header.push(ctx.t('evaluations.evaluation.avis.orientation'));
+
+  const rows = data.eleves.map((e) => {
+    const row = [e.displayName];
+    for (const m of notees) {
+      if (o.moyenneMat) row.push(e.moyenneFinale?.[m.id] != null ? fr(e.moyenneFinale[m.id]) : '');
+      if (o.positionnementFinal) row.push(e.positionnement?.[m.id] ? fr(e.positionnement[m.id]) : '');
+    }
+    if (o.averageFinal) row.push(e.moyenne_generale != null ? fr(e.moyenne_generale) : 'NN');
+    if (o.appreciation) row.push((e.synthese_bilan_periodique ?? '').replace(/\n/g, ' '));
+    if (o.avisConseil) row.push(e.avis_conseil_de_classe ?? '');
+    if (o.avisOrientation) row.push(e.avis_conseil_orientation ?? '');
+    return row;
+  });
+  if (o.statistiques) {
+    const statRow = (label: string, field: keyof Stat) => {
+      const row = [label];
+      for (const m of notees) {
+        if (o.moyenneMat) row.push(isNN(st[m.id]?.moyenne) ? 'NN' : fr(st[m.id]!.moyenne![field]));
+        if (o.positionnementFinal) row.push(isNN(st[m.id]?.positionnement) ? 'NN' : fr(st[m.id]!.positionnement![field]));
+      }
+      const generale = st.moyenne_generale as Stat | undefined;
+      if (o.averageFinal) row.push(generale?.moyenne != null ? fr(generale[field]) : 'NN');
+      return row;
+    };
+    rows.push(statRow(ctx.t('viescolaire.classe.moyenne'), 'moyenne'), statRow('Minimum', 'minimum'), statRow('Maximum', 'maximum'));
+  }
+  const lines = [
+    `${ctx.t('evaluations.classe.groupe')} : ${ctx.classeName}`,
+    `${ctx.t('viescolaire.utils.periode')} : ${ctx.periodeName}`,
+    header.join(';'),
+    teachers.join(';'),
+    ...rows.map((r) => r.join(';')),
+  ];
+  return `﻿${lines.join('\r\n')}\r\n`;
+}

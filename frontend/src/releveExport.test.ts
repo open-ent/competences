@@ -46,3 +46,66 @@ describe('export du relevé périodique', () => {
     expect(apprec).toBe('Appréciation de la classe;Classe sérieuse');
   });
 });
+
+import { recapEvalCsv } from './releveExport';
+
+describe('récapitulatif des niveaux en CSV', () => {
+  it('codes des domaines, moyennes par élève, puis légende', () => {
+    const csv = recapEvalCsv(
+      {
+        classe: '4ème-1',
+        periode: 'Semestre 1',
+        domaines: [{ codification: 'D1.1', libelle: 'Langue française' }, { codification: 'D2', libelle: 'Méthodes' }],
+        eleves: [{ nom: 'Baron Inès', notes: [{}, { moyenne: '2,0' }] }],
+      },
+      (k) => ({ 'evaluations.classe.groupe': 'Classe / Groupe', 'viescolaire.utils.periode': 'Période' })[k] ?? k,
+    );
+    expect(csv.replace('\ufeff', '').split('\n')).toEqual([
+      'Classe / Groupe : ;4ème-1',
+      'Période : ;Semestre 1',
+      ';D1.1;D2',
+      'Baron Inès;;2,0',
+      '',
+      'D1.1 /Langue française',
+      'D2 /Méthodes',
+    ]);
+  });
+});
+
+import { tableauMoyennesCsv } from './releveExport';
+
+describe('tableau des moyennes en CSV', () => {
+  const t = (k: string) => ({ matieres: 'Matières', teachers: 'Enseignants', 'average.min': 'Moy. gén.', 'viescolaire.classe.moyenne': 'Moyenne de la classe', 'evaluations.classe.groupe': 'Classe', 'viescolaire.utils.periode': 'Période' })[k] ?? k;
+  const options = { moyenneMat: true, positionnementFinal: false, averageFinal: true, statistiques: true, appreciation: false, avisConseil: false, avisOrientation: false };
+
+  it('matières notées seulement, nombres à la française, statistiques de classe', () => {
+    const csv = tableauMoyennesCsv(
+      {
+        eleves: [{ displayName: 'Baron Inès', moyenneFinale: { m1: 16.5 }, moyenne_generale: 16.5 }, { displayName: 'Bernard Léa' }],
+        statistiques: {
+          m1: { moyenne: { moyenne: 16, minimum: 15.5, maximum: 16.5 } },
+          m2: { moyenne: { moyenne: null } },
+          moyenne_generale: { moyenne: 16, minimum: 15.5, maximum: 16.5 },
+        },
+      },
+      [{ id: 'm1', name: 'Mathématiques' }, { id: 'm2', name: 'Musique' }],
+      options,
+      { t, classeName: '4ème-1', periodeName: 'Semestre 1', teachersOf: () => 'Martin Amélie' },
+    )!;
+    expect(csv.replace('﻿', '').split('\r\n').slice(0, 9)).toEqual([
+      'Classe : 4ème-1',
+      'Période : Semestre 1',
+      'Matières;Mathématiques;Moy. gén.',
+      'Enseignants;Martin Amélie',
+      'Baron Inès;16,5;16,5',
+      'Bernard Léa;;NN',
+      'Moyenne de la classe;16;16',
+      'Minimum;15,5;15,5',
+      'Maximum;16,5;16,5',
+    ]);
+  });
+
+  it('aucune matière notée : pas de fichier', () => {
+    expect(tableauMoyennesCsv({ eleves: [], statistiques: {} }, [{ id: 'm', name: 'M' }], options, { t, classeName: '', periodeName: '', teachersOf: () => '' })).toBeNull();
+  });
+});

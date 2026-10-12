@@ -3,6 +3,8 @@ import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
 import * as api from '../api';
+import { recapEvalCsv, tableauMoyennesCsv } from '../releveExport';
+import { usePeriodeLabel } from './Filters';
 import { useStructure, useStructureData, useViewer } from '../structure';
 import type { Classe, PeriodeClasse } from '../types';
 
@@ -22,7 +24,8 @@ const KINDS: Array<{ kind: Kind; label: string }> = [
  * compétences, tableau des moyennes, appréciations des professeurs, relevé de notes. Pour un
  * élève (`eleveId`) : son relevé de compétences.
  *
- * Pas encore portés : les exports CSV et le tableau des moyennes composé dans le navigateur.
+ * En CSV : le récapitulatif des niveaux et le tableau des moyennes (moyennes et/ou positionnements,
+ * appréciation et avis du conseil).
  */
 export function ExportSuivi({ classe, periode, eleveId, onClose }: { classe: Classe; periode: PeriodeClasse | null; eleveId?: string; onClose: () => void }) {
   const { t } = useTranslation(['competences', 'viescolaire', 'common']);
@@ -31,6 +34,9 @@ export function ExportSuivi({ classe, periode, eleveId, onClose }: { classe: Cla
   const viewer = useViewer()!;
   const [kind, setKind] = useState<Kind>(eleveId ? 'releveComp' : 'recapEval');
   const [text, setText] = useState(false);
+  const [csv, setCsv] = useState(false);
+  const [tab, setTab] = useState({ moyenneMat: true, positionnementFinal: false, appreciation: false, avisConseil: false, avisOrientation: false });
+  const periodeLabel = usePeriodeLabel();
   const [byEnseignement, setByEnseignement] = useState(false);
   const [moy, setMoy] = useState({ withMoyGeneraleByEleve: true, withMoyMinMaxByMat: true, withAppreciations: false });
   const [excluded, setExcluded] = useState<Set<string>>(new Set());
@@ -45,7 +51,20 @@ export function ExportSuivi({ classe, periode, eleveId, onClose }: { classe: Cla
     try {
       const usePerso = await api.getUsePerso(viewer.userId);
       const fallbackName = `${kind}-${classe.name}.pdf`;
-      if (kind === 'classeReleve') await api.downloadClasseReleve({ structureId, classe, periode });
+      if (kind === 'recapEval' && csv) {
+        const data = await api.getRecapEvalData(structureId, classe.id, idPeriode);
+        api.saveBlob(new Blob([recapEvalCsv(data, t)], { type: 'text/csv;charset=UTF-8' }), `positioning_${classe.name}.csv`);
+      } else if (kind === 'tabMoys' && csv) {
+        const tableau = await api.getTableauMoyennes(structureId, classe, matieres.map((m) => m.id), idPeriode);
+        const teachersOf = (matiereId: string) =>
+          [...new Set(data.devoirs.filter((d) => d.id_groupe === classe.id && d.id_matiere === matiereId).map((d) => (d as { teacher?: string }).teacher).filter(Boolean))].join('  ');
+        const periodeName = periode ? periodeLabel({ id: periode.id_type, type: periode.type, ordre: periode.ordre }) : t('viescolaire.utils.annee');
+        const content = tableau
+          ? tableauMoyennesCsv(tableau, matieres, { ...tab, averageFinal: moy.withMoyGeneraleByEleve, statistiques: moy.withMoyMinMaxByMat }, { t, classeName: classe.name, periodeName, teachersOf })
+          : null;
+        if (!content) throw new api.ExportError('no score');
+        api.saveBlob(new Blob([content], { type: 'text/csv;charset=UTF-8' }), `tableau_moyenne_toutes_matieres_${classe.name}_${periodeName}.csv`);
+      } else if (kind === 'classeReleve') await api.downloadClasseReleve({ structureId, classe, periode });
       else {
         const url =
           kind === 'recapEval'
@@ -113,7 +132,17 @@ export function ExportSuivi({ classe, periode, eleveId, onClose }: { classe: Cla
               ))}
             </fieldset>
           )}
-          {kind !== 'classeReleve' && check('text', t('competences.react.export.text'), text, setText)}
+          {(kind === 'recapEval' || kind === 'tabMoys') && !eleveId && check('csv', t('competences.react.export.csv'), csv, setCsv)}
+          {kind !== 'classeReleve' && !((kind === 'recapEval' || kind === 'tabMoys') && csv) && check('text', t('competences.react.export.text'), text, setText)}
+          {kind === 'tabMoys' && csv && (
+            <div className="d-flex flex-column gap-4">
+              {check('tab-moyenne', t('average'), tab.moyenneMat, (v) => setTab((x) => ({ ...x, moyenneMat: v || !x.positionnementFinal })))}
+              {check('tab-positionnement', t('evaluations.releve.positionnement').trim(), tab.positionnementFinal, (v) => setTab((x) => ({ ...x, positionnementFinal: v || !x.moyenneMat })))}
+              {check('tab-avis-conseil', t('evaluations.evaluation.avis.conseil'), tab.avisConseil, (v) => setTab((x) => ({ ...x, avisConseil: v })))}
+              {check('tab-avis-orientation', t('evaluations.evaluation.avis.orientation'), tab.avisOrientation, (v) => setTab((x) => ({ ...x, avisOrientation: v })))}
+              {check('tab-synthese', t('evaluations.synthese.acquis.bilan.periodique'), tab.appreciation, (v) => setTab((x) => ({ ...x, appreciation: v })))}
+            </div>
+          )}
           {kind === 'tabMoys' && (
             <div className="d-flex flex-column gap-4">
               {check('moy-generale', t('competences.react.export.moy.generale'), moy.withMoyGeneraleByEleve, (v) => setMoy((m) => ({ ...m, withMoyGeneraleByEleve: v })))}

@@ -9,7 +9,7 @@ import type { ProjetAppreciation, ProjetElement } from './projets';
 import type { MoyenneFinale, SubTopicService } from './releveFamille';
 import type { GraphEntry } from './graphiques';
 import type { BfcValeur, EleveEnsCpl, EnsCpl, NiveauEnsCpl } from './bfc';
-import type { ReleveExportData } from './releveExport';
+import type { RecapEvalData, ReleveExportData, TableauData } from './releveExport';
 import type { ClasseEvaluation, CompetenceEvaluation, Conversion } from './suivi';
 
 import type {
@@ -1034,3 +1034,19 @@ export async function importNotesCsv(devoir: Pick<Devoir, 'id' | 'id_groupe' | '
   if (!body.status) return { kind: 'error' as const };
   return (body.missing ?? []).length > 0 ? { kind: 'missing' as const } : { kind: 'ok' as const };
 }
+
+/** Données du récapitulatif des niveaux par domaine, pour le CSV. */
+export const getRecapEvalData = (structureId: string, classeId: string, idPeriode: number | null) =>
+  getJson<RecapEvalData>(`/competences/recapEval/print/${classeId}/export?text=false&usePerso=false&idStructure=${structureId}${idPeriode !== null ? `&idPeriode=${idPeriode}` : ''}&json=true`);
+
+/** Données du tableau des moyennes de la classe sur une période (`ReleveNoteTotale.export`). */
+export const getTableauMoyennes = (structureId: string, classe: Pick<Classe, 'id' | 'type_groupe'>, matiereIds: string[], idPeriode: number | null) =>
+  send<TableauData>('POST', `/competences/releve/exportTotale?structureId=${structureId}`, {
+    idMatieres: matiereIds,
+    idClasse: classe.id,
+    idGroups: [],
+    idEtablissement: structureId,
+    idPeriode,
+    idPeriodes: [],
+    typeClasse: classe.type_groupe,
+  });
