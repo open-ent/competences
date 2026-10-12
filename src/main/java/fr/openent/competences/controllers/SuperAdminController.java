@@ -32,7 +32,13 @@ public class SuperAdminController extends ControllerHelper {
     @ResourceFilter(SuperAdminFilter.class)
     @ApiDoc("Render SuperAdmin view")
     public void setting(HttpServerRequest request) {
-        renderView(request, null, "admin-parameter.html", null);
+        // Page portée dans l'IHM React (écran choisi d'après le chemin) ; `?ui=angular` sert encore
+        // l'ancienne vue, le temps de la migration.
+        if ("angular".equals(request.params().get("ui"))) {
+            renderView(request, null, "admin-parameter.html", null);
+        } else {
+            renderView(request, new io.vertx.core.json.JsonObject(), "competences-react.html", null);
+        }
     }
 
     @Get("/admin/exports/logs")

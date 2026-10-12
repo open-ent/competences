@@ -1064,3 +1064,14 @@ export async function uploadGraphImage(dataUrl: string): Promise<string> {
   if (!res.ok) throw new Error(`${res.status} graph/img`);
   return ((await res.json()) as { _id: string })._id;
 }
+
+// ── Super-administration : journal des exports en erreur ─────────────────────
+
+export interface ExportLog {
+  created?: string;
+  log?: string;
+  params?: { eleve?: { structure?: string; classeName?: string; firstName?: string; lastName?: string } };
+}
+
+/** Exports d'archives (bulletins) tombés en erreur (`GET /competences/admin/exports/logs`). */
+export const getExportLogs = async (): Promise<ExportLog[]> => (await getJson<ExportLog[]>('/competences/admin/exports/logs')) ?? [];

@@ -5,6 +5,7 @@ import { createRoot } from 'react-dom/client';
 import { RouterProvider } from 'react-router-dom';
 
 import { createRouter, isFamilyType } from './routes';
+import { AdminArchivesReport } from './screens/AdminArchivesReport';
 
 import './i18n';
 import './index.css';
@@ -17,10 +18,14 @@ import './index.css';
 // (`ENOENT /theme/brand.css`).
 
 /** Espace enseignant ou espace des élèves et des parents, selon le profil de la session. */
+/** Page super-admin, servie sur sa propre route serveur : pas de routeur. */
+const ADMIN_REPORT = window.location.pathname.endsWith('/competences/admin/archives/report');
+
 function App() {
   const { init, user } = useEdificeClient();
   const family = isFamilyType(user?.type);
   const router = useMemo(() => (init ? createRouter(family) : null), [init, family]);
+  if (ADMIN_REPORT) return <AdminArchivesReport />;
   if (!router) return <LoadingScreen position={false} />;
   return <RouterProvider router={router} />;
 }
