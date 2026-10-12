@@ -924,5 +924,7 @@
   "competences.react.bfc.retenu": "Final level",
   "competences.react.bfc.fixe": "Set by management",
   "competences.react.bfc.pdf.eleve": "Student PDF",
-  "competences.react.bfc.pdf.classe": "Class PDF"
+  "competences.react.bfc.pdf.classe": "Class PDF",
+  "competences.react.enscpl.none": "No complementary teaching is defined (reference data to load: scripts/ops/competences/05).",
+  "competences.react.enscpl.niveau.langue": "Regional language level"
 }

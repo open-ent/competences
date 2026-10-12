@@ -68,3 +68,32 @@ describe('bilan de fin de cycle', () => {
     expect(isVisible(undefined, true)).toBe(false);
   });
 });
+
+import { choisirEnseignement, choisirLangue } from './bfc';
+
+describe('enseignement de complément', () => {
+  const niveaux = [
+    { id: 1, libelle: 'Objectif atteint', niveau: 1, bareme_brevet: 10 },
+    { id: 2, libelle: 'Objectif dépassé', niveau: 2, bareme_brevet: 20 },
+    { id: 3, libelle: 'aucun', niveau: 0, bareme_brevet: 0 },
+  ];
+  const langues = [
+    { id: 1, libelle: 'Aucun', code: 'AUC' },
+    { id: 3, libelle: 'Breton', code: 'BRE' },
+  ];
+
+  it('« Aucun » remet le niveau à aucun, sans langue', () => {
+    expect(choisirEnseignement({ id: 1, libelle: 'Aucun', code: 'AUC' }, niveaux, langues)).toEqual({ id_enscpl: 1, id_niveau: 3, id_langue: null, niveau_lcr: 0 });
+  });
+
+  it('un enseignement part de l’objectif atteint ; la langue régionale, de la première langue', () => {
+    expect(choisirEnseignement({ id: 2, libelle: 'LCA', code: 'LCA' }, niveaux, langues)).toEqual({ id_enscpl: 2, id_niveau: 1, id_langue: null, niveau_lcr: 0 });
+    expect(choisirEnseignement({ id: 3, libelle: 'LCR', code: 'LCR' }, niveaux, langues)).toMatchObject({ id_langue: 1, niveau_lcr: 0 });
+  });
+
+  it('choisir une langue fixe son niveau au premier, « Aucun » l’efface', () => {
+    const base = { id_enscpl: 3, id_niveau: 1, id_langue: 1, niveau_lcr: 0 };
+    expect(choisirLangue(base, langues[1])).toMatchObject({ id_langue: 3, niveau_lcr: 1 });
+    expect(choisirLangue({ ...base, niveau_lcr: 2 }, langues[0])).toMatchObject({ id_langue: 1, niveau_lcr: 0 });
+  });
+});

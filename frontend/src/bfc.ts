@@ -86,3 +86,53 @@ export function bfcAction(ligne: BfcLigne, niveau: number): { kind: 'delete' } |
 
 /** Visibilité d'une information du bilan (`bfc/visibility`) : 1 = direction seulement, 2 = tous. */
 export const isVisible = (visible: number | undefined, chefOrHeadTeacher: boolean) => visible === 2 || (visible === 1 && chefOrHeadTeacher);
+
+// ── Enseignement de complément (`left_side_ens_cplt.html`) ──────────────────
+
+export interface EnsCpl {
+  id: number;
+  libelle: string;
+  code: string;
+}
+export interface NiveauEnsCpl {
+  id: number;
+  libelle: string;
+  /** 0 = aucun, 1 = objectif atteint, 2 = objectif dépassé. */
+  niveau: number;
+  bareme_brevet: number;
+}
+/** Choix de l'élève (`GET /competences/GetNiveauEnsCpl`). */
+export interface EleveEnsCpl {
+  id?: number;
+  id_enscpl?: number;
+  id_niveau?: number;
+  id_langue?: number | null;
+  niveau_lcr?: number | null;
+}
+
+/** Niveaux d'une langue et culture régionale (en dur dans l'AngularJS : `NiveauLangueCultRegs`). */
+export const NIVEAUX_LCR = [
+  { niveau: 1, libelle: 'Objectif atteint' },
+  { niveau: 2, libelle: 'Objectif dépassé' },
+];
+
+/**
+ * `onChangeEns` : « Aucun » remet le niveau à « aucun » ; un autre enseignement part du premier
+ * niveau, et la langue régionale (LCR) de la première langue de la liste (« Aucun »).
+ */
+export function choisirEnseignement(ens: EnsCpl, niveaux: NiveauEnsCpl[], langues: EnsCpl[]): EleveEnsCpl {
+  if (ens.code === 'AUC') return { id_enscpl: ens.id, id_niveau: niveaux.find((n) => n.niveau === 0)?.id, id_langue: null, niveau_lcr: 0 };
+  return {
+    id_enscpl: ens.id,
+    id_niveau: niveaux.find((n) => n.niveau === 1)?.id,
+    id_langue: ens.code === 'LCR' ? (langues[0]?.id ?? null) : null,
+    niveau_lcr: 0,
+  };
+}
+
+/** `oncChangeLangue` : « Aucun » efface le niveau de langue, une langue part du premier niveau. */
+export const choisirLangue = (current: EleveEnsCpl, langue: EnsCpl): EleveEnsCpl => ({
+  ...current,
+  id_langue: langue.id,
+  niveau_lcr: langue.code === 'AUC' ? 0 : 1,
+});

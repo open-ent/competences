@@ -9,6 +9,7 @@ import { isChefEtabOrHeadTeacher } from '../rules';
 import { levelsForCycle } from '../saisie';
 import { useStructure, useViewer } from '../structure';
 import type { Classe } from '../types';
+import { EnseignementComplement } from './EnseignementComplement';
 import { AppreciationInput } from './SaisieInputs';
 
 /** Synthèse du bilan de fin de cycle : 1 500 caractères (`MAX_LENGTH_1500`). */
@@ -20,7 +21,7 @@ const MAX_1500 = 1500;
  * niveau retenu, que la direction et le professeur principal peuvent fixer ; dispense d'un
  * domaine, points du contrôle continu du brevet (cycle 4), synthèse, exports PDF.
  *
- * Pas encore portés : enseignements de complément et langues régionales.
+ * Au cycle 4, l'enseignement de complément de l'élève (et sa langue régionale), qui compte au brevet.
  */
 export function BilanFinCycle({ classe, eleveId }: { classe: Classe; eleveId: string }) {
   const { t } = useTranslation(['competences', 'viescolaire', 'common']);
@@ -201,6 +202,8 @@ export function BilanFinCycle({ classe, eleveId }: { classe: Classe; eleveId: st
           {t('evaluation.bfc.controle.continu')} {baremeQuery.data!.controlesContinus_brevet} / {baremeQuery.data!.totalMaxBaremeBrevet}
         </p>
       )}
+
+      {idCycle === 1 && <EnseignementComplement eleveId={eleveId} idCycle={idCycle} showBareme={isVisible(baremeVisibleQuery.data, chef)} />}
 
       <div>
         <h4 className="h6">{t('evaluations.bilan.fin.cycle.tilte.synthese')}</h4>

@@ -8,7 +8,7 @@ import type { FamilyChild, FamilyDevoir, StudentAnnotation, StudentCompetence, S
 import type { ProjetAppreciation, ProjetElement } from './projets';
 import type { MoyenneFinale, SubTopicService } from './releveFamille';
 import type { GraphEntry } from './graphiques';
-import type { BfcValeur } from './bfc';
+import type { BfcValeur, EleveEnsCpl, EnsCpl, NiveauEnsCpl } from './bfc';
 import type { ClasseEvaluation, CompetenceEvaluation, Conversion } from './suivi';
 
 import type {
@@ -805,3 +805,29 @@ export const bfcPdfUrl = (p: { structureId: string; idCycle: number } & ({ eleve
   'eleveId' in p
     ? `/competences/BFC/pdf?idEleve=${p.eleveId}&idEtablissement=${p.structureId}&idCycle=${p.idCycle}`
     : `/competences/BFC/pdf?idClasse=${p.classeId}&idCycle=${p.idCycle}`;
+
+// ── Enseignement de complément ───────────────────────────────────────────────
+
+export const getEnsCpls = async (structureId: string): Promise<EnsCpl[]> =>
+  (await getJson<EnsCpl[]>(`/competences/ListEnseignementComplement?idEtablissement=${structureId}`)) ?? [];
+
+export const getNiveauxEnsCpl = async (structureId: string): Promise<NiveauEnsCpl[]> =>
+  (await getJson<NiveauEnsCpl[]>(`/competences/niveaux/enseignement/complement/list?idEtablissement=${structureId}`)) ?? [];
+
+export const getLanguesRegionales = async (structureId: string): Promise<EnsCpl[]> =>
+  (await getJson<EnsCpl[]>(`/competences/langues/culture/regionale/list?idEtablissement=${structureId}`)) ?? [];
+
+export const getEleveEnsCpl = async (eleveId: string, idCycle: number): Promise<EleveEnsCpl> =>
+  (await getJson<EleveEnsCpl>(`/competences/GetNiveauEnsCpl?idEleve=${eleveId}&idCycle=${idCycle}`)) ?? {};
+
+export const saveEleveEnsCpl = (id: number | undefined, eleveId: string, idCycle: number, v: EleveEnsCpl) => {
+  const body = {
+    id_eleve: eleveId,
+    id_enscpl: v.id_enscpl,
+    id_langue: v.id_langue ?? undefined,
+    id_niveau: v.id_niveau,
+    niveau_lcr: v.niveau_lcr ?? 0,
+    id_cycle: idCycle,
+  };
+  return id ? send('PUT', `/competences/UpdateNiveauEnsCpl?id=${id}`, body) : send('POST', '/competences/CreateNiveauEnsCpl', body);
+};
