@@ -932,5 +932,9 @@
   "competences.react.export.text": "Levels in words rather than in colour",
   "competences.react.export.moy.generale": "Overall average of each student",
   "competences.react.export.moy.minmax": "Minimum and maximum averages per subject",
-  "competences.react.print": "Print"
+  "competences.react.print": "Print",
+  "competences.react.releve.export.format": "Format",
+  "competences.react.releve.export.notes": "Marks of each assessment",
+  "competences.react.releve.export.previous.averages": "Averages of previous periods",
+  "competences.react.releve.export.previous.appreciations": "Comments of previous periods"
 }

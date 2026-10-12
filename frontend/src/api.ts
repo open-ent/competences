@@ -9,6 +9,7 @@ import type { ProjetAppreciation, ProjetElement } from './projets';
 import type { MoyenneFinale, SubTopicService } from './releveFamille';
 import type { GraphEntry } from './graphiques';
 import type { BfcValeur, EleveEnsCpl, EnsCpl, NiveauEnsCpl } from './bfc';
+import type { ReleveExportData } from './releveExport';
 import type { ClasseEvaluation, CompetenceEvaluation, Conversion } from './suivi';
 
 import type {
@@ -1001,4 +1002,11 @@ export async function downloadClasseReleve(p: { structureId: string; classe: Pic
   if (!res.ok) throw new ExportError('');
   const disposition = res.headers.get('content-disposition') ?? '';
   saveBlob(await res.blob(), (disposition.split('filename=')[1] ?? `releve-${p.classe.name}.pdf`).replace(/"/g, ''));
+}
+
+/** Export du relevé périodique : le PDF, ou les données du CSV que l'interface compose. */
+export async function exportReleve(body: Record<string, unknown> & { fileType: 'pdf' | 'csv' }): Promise<Blob | ReleveExportData> {
+  const res = await fetch('/competences/releve/export', { credentials: 'include', method: 'POST', headers: xsrfHeaders(), body: JSON.stringify(body) });
+  if (!res.ok) throw new ExportError(`${res.status}`);
+  return body.fileType === 'pdf' ? res.blob() : ((await res.json()) as ReleveExportData);
 }

@@ -5,6 +5,7 @@ import { useTranslation } from 'react-i18next';
 import { Link, useNavigate } from 'react-router-dom';
 
 import * as api from '../api';
+import { ExportReleve } from '../features/ExportReleve';
 import { ClasseSelect, SimpleSelect, StructureSelect, usePeriodeLabel } from '../features/Filters';
 import { AppreciationInput, NoteInput } from '../features/SaisieInputs';
 import {
@@ -29,7 +30,7 @@ import type { Devoir, PeriodeClasse } from '../types';
  * l'appréciation de l'enseignant, puis les statistiques de la classe. Sur l'année, les moyennes
  * de chaque période.
  *
- * Pas encore portés : l'export (PDF, CSV), les graphiques, la fiche détaillée d'un élève et
+ * Export PDF et CSV. Pas encore portés : les graphiques, la fiche détaillée d'un élève et
  * l'aide à la saisie des éléments du programme.
  */
 export function Releve() {
@@ -193,6 +194,7 @@ function PeriodView({ classe, matiereId, periode, periodes }: ViewProps & { peri
   });
   const [error, setError] = useState<string | null>(null);
   const [showNotes, setShowNotes] = useState(true);
+  const [exporting, setExporting] = useState(false);
   const [confirmClear, setConfirmClear] = useState<{ eleveId: string; previous: string } | null>(null);
 
   const devoirs = useMemo(
@@ -272,6 +274,22 @@ function PeriodView({ classe, matiereId, periode, periodes }: ViewProps & { peri
 
   return (
     <div className="d-flex flex-column gap-16">
+      <div className="d-flex justify-content-end">
+        <Button type="button" color="secondary" variant="outline" onClick={() => setExporting(true)}>
+          {t('evaluations.export.file')}
+        </Button>
+      </div>
+      {exporting && matiere && (
+        <ExportReleve
+          classe={classe}
+          matiere={matiere}
+          periode={periode}
+          periodes={periodes}
+          devoirs={devoirs}
+          annotations={annotations}
+          onClose={() => setExporting(false)}
+        />
+      )}
       {error && <Alert type="danger">{error}</Alert>}
       {locked && <Alert type="warning">{t('end.saisie')}</Alert>}
 
