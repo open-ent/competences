@@ -243,3 +243,52 @@ export function classeShown(evals: ClasseEvaluation[], masque: boolean, onlyEval
   const list = onlyMine ? evals.filter((e) => isMine(e, teachers)) : evals;
   return list.some((e) => e.evaluation !== -1);
 }
+
+// ── Vue par enseignement (`DefaultEnseignement.loadCompetences`) ─────────────
+
+/** Enseignement « Langues » : ses compétences se présentent matière par matière. */
+export const ENSEIGNEMENT_LANGUES = 6;
+
+interface EnseignementRef {
+  id: number;
+  nom: string;
+  competences_1?: Array<{ id: number; nom: string; masque?: boolean; competences_2?: Array<{ id: number; nom: string; masque?: boolean }> }>;
+}
+
+export interface EnseignementBloc {
+  key: string;
+  /** Nom de l'enseignement, suivi de la matière pour les langues. */
+  titre: string;
+  competences: Array<{
+    id: number;
+    nom: string;
+    sous: Array<{ competence: { id: number; nom: string; masque: boolean }; evals: CompetenceEvaluation[] }>;
+  }>;
+}
+
+/**
+ * Les enseignements du cycle avec, sous chaque compétence, ses sous-compétences et leurs
+ * évaluations (rattachées par compétence, quel que soit le domaine). Pour les langues, un bloc par
+ * matière évaluée, limité aux évaluations de cette matière ; sans évaluation, un seul bloc.
+ */
+export function enseignementBlocs(enseignements: EnseignementRef[], evaluations: CompetenceEvaluation[], matiereNames: Map<string, string>): EnseignementBloc[] {
+  const blocs: EnseignementBloc[] = [];
+  for (const ens of enseignements) {
+    const build = (matiereId?: string): EnseignementBloc['competences'] =>
+      (ens.competences_1 ?? []).map((c1) => ({
+        id: c1.id,
+        nom: c1.nom,
+        sous: (c1.competences_2 ?? []).map((c2) => ({
+          competence: { id: c2.id, nom: c2.nom, masque: !!c2.masque },
+          evals: evaluations.filter((e) => e.id_competence === c2.id && (matiereId === undefined || e.id_matiere === matiereId)),
+        })),
+      }));
+    const ids = new Set((ens.competences_1 ?? []).flatMap((c1) => (c1.competences_2 ?? []).map((c2) => c2.id)));
+    const matieres = ens.id === ENSEIGNEMENT_LANGUES ? [...new Set(evaluations.filter((e) => ids.has(e.id_competence)).map((e) => e.id_matiere))] : [];
+    if (matieres.length === 0) blocs.push({ key: String(ens.id), titre: ens.nom, competences: build() });
+    else
+      for (const m of matieres.sort((a, b) => (matiereNames.get(a) ?? a).localeCompare(matiereNames.get(b) ?? b)))
+        blocs.push({ key: `${ens.id}-${m}`, titre: `${ens.nom} — ${matiereNames.get(m) ?? m}`, competences: build(m) });
+  }
+  return blocs;
+}

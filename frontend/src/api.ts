@@ -256,8 +256,8 @@ export const finishDevoir = (devoirId: number) => send('PUT', `/competences/devo
 // ── Création et modification d'une évaluation ────────────────────────────────
 
 /** Référentiel du cycle de la classe : enseignements → compétences → sous-compétences. */
-export const getEnseignements = async (classId: string): Promise<Enseignement[]> =>
-  (await getJson<Enseignement[]>(`/competences/enseignements?idClasse=${classId}`)) ?? [];
+export const getEnseignements = async (classId: string, idCycle?: number | null): Promise<Enseignement[]> =>
+  (await getJson<Enseignement[]>(`/competences/enseignements?idClasse=${classId}${idCycle ? `&idCycle=${idCycle}` : ''}`)) ?? [];
 
 /** Ce qui est déjà saisi sur une évaluation : `TypeEvalSkill` (id = compétence) et `TypeEvalNum`. */
 export const getEvaluationInformation = async (devoirId: number): Promise<Array<{ id: string; typeeval: string }>> =>

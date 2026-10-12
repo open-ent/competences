@@ -4,7 +4,7 @@ import { useTranslation } from 'react-i18next';
 import type { DomaineSuivi } from '../api';
 import { formatDate } from '../rules';
 import { Level, UNEVALUATED_COLOR } from '../saisie';
-import { CompetenceEvaluation, competenceLevels, Conversion, isMine, isShown, TeacherSubject } from '../suivi';
+import { CompetenceEvaluation, competenceLevels, Conversion, EnseignementBloc, isMine, isShown, TeacherSubject } from '../suivi';
 
 /*
  * Arbre des domaines du socle avec le niveau de chaque compétence : partagé par le suivi d'un
@@ -177,6 +177,67 @@ function CompetenceRow({
           </tbody>
         </table>
       )}
+    </div>
+  );
+}
+
+/**
+ * Vue par enseignement : chaque enseignement du cycle, ses compétences, et sous chacune les
+ * sous-compétences visibles avec leur niveau. Un enseignement qui ne montre rien est omis.
+ */
+export function EnseignementBlocs({ blocs, ...props }: BlockProps & { blocs: EnseignementBloc[] }) {
+  return (
+    <>
+      {blocs.map((bloc) => {
+        const competences = bloc.competences
+          .map((c) => ({
+            ...c,
+            sous: c.sous.filter(({ competence, evals }) => isShown(evals, competence.masque, props.onlyEvaluated, props.onlyMine, props.teachers)),
+          }))
+          .filter((c) => c.sous.length > 0);
+        if (competences.length === 0) return null;
+        return (
+          <details key={bloc.key}>
+            <summary>
+              <h3 className="d-inline h5">{bloc.titre}</h3>
+            </summary>
+            <div className="ms-16 mt-8 d-flex flex-column gap-12">
+              {competences.map((c) => (
+                <div key={c.id}>
+                  <h4 className="h6">{c.nom}</h4>
+                  <div className="ms-16 d-flex flex-column gap-4">
+                    {c.sous.map(({ competence, evals }) => (
+                      <CompetenceRow key={competence.id} competence={competence} evals={evals} {...props} />
+                    ))}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </details>
+        );
+      })}
+    </>
+  );
+}
+
+/** Choix de la présentation, comme dans l'AngularJS (`searchBilan.parDomaine`). */
+export function VueToggle({ value, onChange }: { value: 'domaines' | 'enseignements'; onChange: (v: 'domaines' | 'enseignements') => void }) {
+  const { t } = useTranslation(['competences', 'common']);
+  return (
+    <div className="d-flex gap-12" role="radiogroup" aria-label={t('competences.react.suivi.vue')}>
+      {(
+        [
+          ['enseignements', 'evaluation.search.by.enseignements'],
+          ['domaines', 'evaluation.search.by.domaines'],
+        ] as const
+      ).map(([v, label]) => (
+        <div key={v} className="form-check">
+          <input id={`suivi-vue-${v}`} type="radio" name="suivi-vue" className="form-check-input" checked={value === v} onChange={() => onChange(v)} />
+          <label htmlFor={`suivi-vue-${v}`} className="form-check-label">
+            {t(label)}
+          </label>
+        </div>
+      ))}
     </div>
   );
 }

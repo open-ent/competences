@@ -7,11 +7,11 @@ import { useSearchParams } from 'react-router-dom';
 import * as api from '../api';
 import { BilanFinCycle } from '../features/BilanFinCycle';
 import { ClasseSelect, StructureSelect, usePeriodeLabel } from '../features/Filters';
-import { DomaineBlock, Legend } from '../features/SuiviTree';
+import { DomaineBlock, EnseignementBlocs, Legend, VueToggle } from '../features/SuiviTree';
 import { isChefEtabOrHeadTeacher, isValidClasse, sortClasses } from '../rules';
 import { levelsForCycle, sortEleves } from '../saisie';
 import { useStructure, useStructureData, useViewer } from '../structure';
-import { CompetenceEvaluation, finalMatieres, myTeachers, nextFinal } from '../suivi';
+import { CompetenceEvaluation, enseignementBlocs, finalMatieres, myTeachers, nextFinal } from '../suivi';
 import type { PeriodeClasse } from '../types';
 
 /**
@@ -21,7 +21,7 @@ import type { PeriodeClasse } from '../types';
  *
  * Accepte `?idEleve=…&idClasse=…`, posés par la recherche d'élève de l'accueil (comme l'AngularJS).
  *
- * Bilan de fin de cycle en second onglet. Pas encore portés : vue par enseignement, graphiques,
+ * Présentation par domaine ou par enseignement ; bilan de fin de cycle en second onglet. Pas encore portés : graphiques,
  * onglets notes et bulletins, export PDF du suivi, évaluation libre.
  */
 export function SuiviEleve() {
@@ -214,6 +214,8 @@ function SuiviCompetences({
   const [onlyMine, setOnlyMine] = useState(!(chef || viewer.isPersEducNat));
   const [onlyEvaluated, setOnlyEvaluated] = useState(true);
   const [error, setError] = useState(false);
+  const [vue, setVue] = useState<'domaines' | 'enseignements'>('domaines');
+  const data = useStructureData();
 
   const notesKey = ['competences', structureId, 'suivi', eleveId, idCycle, periode?.id_type ?? 'annee'];
   const domainesQuery = useQuery({
@@ -228,6 +230,11 @@ function SuiviCompetences({
   const averageQuery = useQuery({ queryKey: ['competences', structureId, 'skill-average'], queryFn: () => api.getSkillAverageOption(structureId) });
   const levelsQuery = useQuery({ queryKey: ['competences', structureId, 'maitrise'], queryFn: () => api.getMaitriseLevels(structureId) });
 
+  const enseignementsQuery = useQuery({
+    queryKey: ['competences', 'enseignements', classe.id, idCycle],
+    queryFn: () => api.getEnseignements(classe.id, idCycle),
+    enabled: vue === 'enseignements',
+  });
   const teachers = useMemo(() => myTeachers(viewer.userId, classe, viewer.today), [viewer.userId, classe, viewer.today]);
 
   if ([domainesQuery, notesQuery, conversionQuery, averageQuery, levelsQuery].some((q) => q.isLoading)) {
@@ -260,6 +267,18 @@ function SuiviCompetences({
     }
   };
 
+  const blockProps = {
+    evaluations,
+    teachers,
+    table,
+    levels,
+    options: { average: !!averageQuery.data, isYear },
+    onlyMine,
+    onlyEvaluated,
+    finalEditable: canSetFinal && !finalLocked,
+    onSetFinal: setFinal,
+  };
+
   return (
     <section className="card p-16 d-flex flex-column gap-12">
       <div className="d-flex flex-wrap gap-16">
@@ -288,21 +307,15 @@ function SuiviCompetences({
 
       <Legend levels={levels} />
 
-      {(domainesQuery.data ?? []).map((domaine) => (
-        <DomaineBlock
-          key={domaine.id}
-          domaine={domaine}
-          evaluations={evaluations}
-          teachers={teachers}
-          table={table}
-          levels={levels}
-          options={{ average: !!averageQuery.data, isYear }}
-          onlyMine={onlyMine}
-          onlyEvaluated={onlyEvaluated}
-          finalEditable={canSetFinal && !finalLocked}
-          onSetFinal={setFinal}
+      <VueToggle value={vue} onChange={setVue} />
+      {vue === 'enseignements' && enseignementsQuery.isLoading && <LoadingScreen position={false} />}
+      {vue === 'enseignements' && (
+        <EnseignementBlocs
+          blocs={enseignementBlocs(enseignementsQuery.data ?? [], evaluations, new Map(data.matieres.map((m) => [m.id, m.name])))}
+          {...blockProps}
         />
-      ))}
+      )}
+      {vue === 'domaines' && (domainesQuery.data ?? []).map((domaine) => <DomaineBlock key={domaine.id} domaine={domaine} {...blockProps} />)}
     </section>
   );
 }

@@ -193,3 +193,32 @@ describe('suivi de classe', () => {
     expect(classeShown(evals, false, true, false, mine)).toBe(true);
   });
 });
+
+import { enseignementBlocs } from './suivi';
+
+describe('vue par enseignement', () => {
+  const e = (id_competence: number, id_matiere: string, evaluation = 2) =>
+    ({ id_competence, id_matiere, evaluation, id_domaine: 1, id_competences_notes: id_competence, owner: 't', id_devoir: 1, evaluation_libelle: '', evaluation_date: '', created: '', formative: false, niveau_final: null, niveau_final_annuel: null, eval_lib_historise: false }) as never;
+  const enseignements = [
+    { id: 1, nom: 'Mathématiques', competences_1: [{ id: 10, nom: 'Chercher', competences_2: [{ id: 11, nom: 'Extraire' }, { id: 12, nom: 'Tester' }] }] },
+    { id: 6, nom: 'Langues vivantes', competences_1: [{ id: 60, nom: 'Écouter', competences_2: [{ id: 61, nom: 'Comprendre' }] }] },
+  ];
+  const names = new Map([['ang', 'Anglais'], ['esp', 'Espagnol']]);
+
+  it('rattache les évaluations aux sous-compétences, quel que soit le domaine', () => {
+    const [maths] = enseignementBlocs(enseignements, [e(11, 'mat')], names);
+    expect(maths.titre).toBe('Mathématiques');
+    expect(maths.competences[0].sous.map((s) => s.evals.length)).toEqual([1, 0]);
+  });
+
+  it('les langues se découpent par matière évaluée', () => {
+    const blocs = enseignementBlocs(enseignements, [e(61, 'esp'), e(61, 'ang'), e(61, 'ang')], names);
+    expect(blocs.map((b) => b.titre)).toEqual(['Mathématiques', 'Langues vivantes — Anglais', 'Langues vivantes — Espagnol']);
+    expect(blocs[1].competences[0].sous[0].evals).toHaveLength(2);
+    expect(blocs[2].competences[0].sous[0].evals).toHaveLength(1);
+  });
+
+  it('sans évaluation en langues, un seul bloc', () => {
+    expect(enseignementBlocs(enseignements, [], names).map((b) => b.titre)).toEqual(['Mathématiques', 'Langues vivantes']);
+  });
+});

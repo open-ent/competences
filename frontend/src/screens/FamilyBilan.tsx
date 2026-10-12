@@ -8,7 +8,8 @@ import { currentPeriode, FamilyChild } from '../family';
 import { todayLocal, useChildData, useFamily } from '../familyContext';
 import { WithChild } from '../features/FamilyParts';
 import { usePeriodeLabel } from '../features/Filters';
-import { DomaineBlock, Legend } from '../features/SuiviTree';
+import { DomaineBlock, EnseignementBlocs, Legend, VueToggle } from '../features/SuiviTree';
+import { enseignementBlocs } from '../suivi';
 import { levelsForCycle } from '../saisie';
 
 /** Valeur du choix de période : un type de période, l'année, ou le cycle. */
@@ -20,7 +21,7 @@ const decode = (v: string): Choice => (v === 'annee' || v === 'cycle' ? { kind: 
  * Bilan de compétences de l'enfant (`content_vue_bilan_eleve.html`) : par domaine du socle, le
  * niveau de chaque compétence sur une période, l'année ou un cycle.
  *
- * Pas encore portée : la présentation par enseignement (absente aussi du suivi enseignant).
+ * Présentation par enseignement (par défaut, comme l'AngularJS) ou par domaine.
  */
 export function FamilyBilan() {
   return <WithChild render={(child, data) => <BilanView child={child} data={data} />} />;
@@ -37,6 +38,8 @@ function BilanView({ child, data }: { child: FamilyChild; data: ReturnType<typeo
   });
   const [cycleId, setCycleId] = useState<number | null>(data.idCycle);
   const [onlyEvaluated, setOnlyEvaluated] = useState(true);
+  // L'AngularJS ouvrait le bilan des familles par enseignement (`parDomaine: 'false'`).
+  const [vue, setVue] = useState<'domaines' | 'enseignements'>('enseignements');
 
   const idCycle = choice.kind === 'cycle' ? cycleId : data.idCycle;
   const periode = choice.kind === 'periode' ? choice.idType : null;
@@ -60,11 +63,28 @@ function BilanView({ child, data }: { child: FamilyChild; data: ReturnType<typeo
     queryKey: ['competences', child.idStructure, 'skill-average'],
     queryFn: () => api.getSkillAverageOption(child.idStructure),
   });
+  const enseignementsQuery = useQuery({
+    queryKey: ['competences', 'enseignements', child.idClasse, idCycle],
+    queryFn: () => api.getEnseignements(child.idClasse, idCycle),
+    enabled: idCycle !== null && vue === 'enseignements',
+  });
   const maitriseQuery = useQuery({ queryKey: ['competences', child.idStructure, 'maitrise'], queryFn: () => api.getMaitriseLevels(child.idStructure) });
 
   if (idCycle === null) return <Alert type="info">{t('competences.react.famille.no.cycle')}</Alert>;
   const loading = [domainesQuery, notesQuery, conversionQuery, averageQuery, maitriseQuery].some((q) => q.isLoading);
   const levels = levelsForCycle(maitriseQuery.data ?? [], idCycle);
+
+  const blockProps = {
+    evaluations: notesQuery.data ?? [],
+    teachers: [],
+    table: conversionQuery.data ?? [],
+    levels,
+    options: { average: !!averageQuery.data, isYear: choice.kind === 'annee' },
+    onlyMine: false,
+    onlyEvaluated,
+    finalEditable: false,
+    onSetFinal: async () => undefined,
+  };
 
   return (
     <div className="d-flex flex-column gap-16">
@@ -135,21 +155,12 @@ function BilanView({ child, data }: { child: FamilyChild; data: ReturnType<typeo
           <>
             <Legend levels={levels} />
             {(notesQuery.data ?? []).length === 0 && <Alert type="info">{t('competences.react.suivi.no.evaluation')}</Alert>}
-            {(domainesQuery.data ?? []).map((domaine) => (
-              <DomaineBlock
-                key={domaine.id}
-                domaine={domaine}
-                evaluations={notesQuery.data ?? []}
-                teachers={[]}
-                table={conversionQuery.data ?? []}
-                levels={levels}
-                options={{ average: !!averageQuery.data, isYear: choice.kind === 'annee' }}
-                onlyMine={false}
-                onlyEvaluated={onlyEvaluated}
-                finalEditable={false}
-                onSetFinal={async () => undefined}
-              />
-            ))}
+            <VueToggle value={vue} onChange={setVue} />
+            {vue === 'enseignements' && enseignementsQuery.isLoading && <LoadingScreen position={false} />}
+            {vue === 'enseignements' && (
+              <EnseignementBlocs blocs={enseignementBlocs(enseignementsQuery.data ?? [], notesQuery.data ?? [], data.matiereNames)} {...blockProps} />
+            )}
+            {vue === 'domaines' && (domainesQuery.data ?? []).map((domaine) => <DomaineBlock key={domaine.id} domaine={domaine} {...blockProps} />)}
           </>
         )}
       </section>

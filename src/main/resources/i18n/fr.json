@@ -926,5 +926,6 @@
   "competences.react.bfc.pdf.eleve": "PDF de l'élève",
   "competences.react.bfc.pdf.classe": "PDF de la classe",
   "competences.react.enscpl.none": "Aucun enseignement de complément n'est défini (référentiel à charger : scripts/ops/competences/05).",
-  "competences.react.enscpl.niveau.langue": "Niveau en langue régionale"
+  "competences.react.enscpl.niveau.langue": "Niveau en langue régionale",
+  "competences.react.suivi.vue": "Présentation du suivi"
 }
