@@ -8,6 +8,7 @@ import type { FamilyChild, FamilyDevoir, StudentAnnotation, StudentCompetence, S
 import type { ProjetAppreciation, ProjetElement } from './projets';
 import type { MoyenneFinale, SubTopicService } from './releveFamille';
 import type { GraphEntry } from './graphiques';
+import type { BfcValeur } from './bfc';
 import type { ClasseEvaluation, CompetenceEvaluation, Conversion } from './suivi';
 
 import type {
@@ -355,6 +356,9 @@ export interface DomaineSuivi {
   codification: string;
   libelle: string;
   evaluated: boolean;
+  /** Le domaine peut être déclaré dispensé pour un élève (bilan de fin de cycle). */
+  dispensable?: boolean;
+  dispense_eleve?: boolean | null;
   domaines?: DomaineSuivi[];
   competences?: Array<{ id: number; nom: string; id_domaine: number; masque: boolean }>;
 }
@@ -754,3 +758,50 @@ export const getGraphData = async (
   (await getJson<GraphEntry[]>(
     `/competences/bilan/periodique/datas/graph${kind === 'domaine' ? '/domaine' : ''}?idEtablissement=${structureId}&idClasse=${classe.id}&typeClasse=${classe.type_groupe}&idEleve=${eleveId}&idPeriode=${periode}`,
   )) ?? [];
+
+// ── Bilan de fin de cycle ────────────────────────────────────────────────────
+
+/** Niveaux fixés par la direction pour l'élève sur le cycle. */
+export const getBfcValeurs = async (structureId: string, eleveId: string, idCycle: number): Promise<BfcValeur[]> =>
+  (await getJson<BfcValeur[]>(`/competences/bfc/eleve/${eleveId}?idEtablissement=${structureId}&idCycle=${idCycle}`)) ?? [];
+
+export const saveBfcValeur = (b: Omit<BfcValeur, 'id'> & { id?: number }) =>
+  b.id
+    ? send('PUT', `/competences/bfc?idDomaine=${b.id_domaine}&idEleve=${b.id_eleve}`, b)
+    : send('POST', '/competences/bfc', { id_eleve: b.id_eleve, id_domaine: b.id_domaine, id_etablissement: b.id_etablissement, owner: b.owner, valeur: b.valeur });
+
+export const deleteBfcValeur = (idDomaine: number, eleveId: string) => send('DELETE', `/competences/bfc?idDomaine=${idDomaine}&idEleve=${eleveId}`);
+
+/** Visibilité réglée par l'établissement : 1 = moyenne des domaines, 2 = barème du brevet. */
+export const getBfcVisibility = async (structureId: string, kind: 1 | 2): Promise<number | undefined> => {
+  try {
+    return (await getJson<Array<{ visible: number }>>(`/competences/bfc/visibility/structures/${structureId}/${kind}`))?.[0]?.visible;
+  } catch {
+    return undefined;
+  }
+};
+
+/** Points du contrôle continu du brevet acquis sur le cycle. */
+export const getBaremeBrevet = async (structureId: string, classeId: string, eleveId: string, idCycle: number) =>
+  (await getJson<Array<{ controlesContinus_brevet: number; totalMaxBaremeBrevet: number }>>(
+    `/competences/bfc/bareme/brevet/${eleveId}/${classeId}/${structureId}?idTypePeriode=null&isCycle=true&idCycle=${idCycle}`,
+  ))?.[0] ?? null;
+
+export const getBfcSynthese = async (eleveId: string, idCycle: number): Promise<{ id?: number; texte?: string }> =>
+  (await getJson<{ id?: number; texte?: string }>(`/competences/BfcSynthese?idEleve=${eleveId}&idCycle=${idCycle}`)) ?? {};
+
+export const saveBfcSynthese = (current: { id?: number }, eleveId: string, idCycle: number, texte: string) =>
+  current.id
+    ? send('PUT', `/competences/BfcSynthese?id=${current.id}`, { id_eleve: eleveId, id_cycle: idCycle, texte })
+    : send('POST', '/competences/BfcSynthese', { id_eleve: eleveId, id_cycle: idCycle, texte });
+
+export const setDispenseDomaine = (structureId: string, idDomaine: number, eleveId: string, dispense: boolean) =>
+  dispense
+    ? send('POST', '/competences/domaine/dispense/eleve', { id_eleve: eleveId, id_domaine: idDomaine, dispense: true })
+    : send('DELETE', `/competences/domaine/dispense/eleve/${idDomaine}/${eleveId}/${structureId}`);
+
+/** Bilan de fin de cycle en PDF, pour un élève ou pour sa classe. */
+export const bfcPdfUrl = (p: { structureId: string; idCycle: number } & ({ eleveId: string } | { classeId: string })) =>
+  'eleveId' in p
+    ? `/competences/BFC/pdf?idEleve=${p.eleveId}&idEtablissement=${p.structureId}&idCycle=${p.idCycle}`
+    : `/competences/BFC/pdf?idClasse=${p.classeId}&idCycle=${p.idCycle}`;

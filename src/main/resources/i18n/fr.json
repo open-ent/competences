@@ -811,7 +811,7 @@
   "you.have": "Vous avez sélectionné ",
   "évaluation.domaine.bfc.nonevalue": "(domaine non évalué)",
   "competences.switch.invitation.title": "Essayez la nouvelle version des évaluations",
-  "competences.switch.invitation.body": "Elle reprend l'habillage commun aux autres applications. L'accueil, les évaluations (création, saisie des notes et des compétences), le relevé périodique, les suivis d'un élève et d'une classe, la saisie des projets, le suivi des acquis du conseil de classe, la génération des bulletins et les exports y sont disponibles ; le reste s'ouvre encore dans cette version.",
+  "competences.switch.invitation.body": "Elle reprend l'habillage commun aux autres applications. L'accueil, les évaluations (création, saisie des notes et des compétences), le relevé périodique, les suivis d'un élève et d'une classe, le bilan de fin de cycle, la saisie des projets, le conseil de classe, la génération des bulletins et les exports y sont disponibles ; le reste s'ouvre encore dans cette version.",
   "competences.switch.invitation.later": "Plus tard",
   "competences.switch.invitation.try": "Essayer",
   "competences.switch.return.title": "Vous utilisez la nouvelle version des évaluations.",
@@ -917,5 +917,12 @@
   "competences.react.graph.max": "Moyenne maximale de la classe",
   "competences.react.graph.empty": "Aucune donnée à représenter pour cette période.",
   "competences.react.graph.repartition": "Répartition des niveaux de l'élève",
-  "competences.react.graph.type": "Type de graphique"
+  "competences.react.graph.type": "Type de graphique",
+  "competences.react.bfc.no.cycle": "La classe n'est rattachée à aucun cycle : le bilan de fin de cycle n'est pas disponible.",
+  "competences.react.bfc.domaine": "Composante du socle",
+  "competences.react.bfc.calcule": "Niveau calculé",
+  "competences.react.bfc.retenu": "Niveau retenu",
+  "competences.react.bfc.fixe": "Fixé par la direction",
+  "competences.react.bfc.pdf.eleve": "PDF de l'élève",
+  "competences.react.bfc.pdf.classe": "PDF de la classe"
 }

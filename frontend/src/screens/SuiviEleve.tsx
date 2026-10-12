@@ -5,6 +5,7 @@ import { useTranslation } from 'react-i18next';
 import { useSearchParams } from 'react-router-dom';
 
 import * as api from '../api';
+import { BilanFinCycle } from '../features/BilanFinCycle';
 import { ClasseSelect, StructureSelect, usePeriodeLabel } from '../features/Filters';
 import { DomaineBlock, Legend } from '../features/SuiviTree';
 import { isChefEtabOrHeadTeacher, isValidClasse, sortClasses } from '../rules';
@@ -20,8 +21,8 @@ import type { PeriodeClasse } from '../types';
  *
  * Accepte `?idEleve=…&idClasse=…`, posés par la recherche d'élève de l'accueil (comme l'AngularJS).
  *
- * Pas encore portés : bilan de fin de cycle, vue par enseignement, graphiques, onglets notes et
- * bulletins, export PDF, évaluation libre.
+ * Bilan de fin de cycle en second onglet. Pas encore portés : vue par enseignement, graphiques,
+ * onglets notes et bulletins, export PDF du suivi, évaluation libre.
  */
 export function SuiviEleve() {
   const { t } = useTranslation(['competences', 'viescolaire', 'common']);
@@ -36,6 +37,7 @@ export function SuiviEleve() {
   const classeId = params.get('idClasse');
   const eleveId = params.get('idEleve');
   const [periodeKey, setPeriodeKey] = useState<string>('');
+  const [vue, setVue] = useState<'suivi' | 'bfc'>('suivi');
   const setParam = (patch: Record<string, string | null>) => {
     const next = new URLSearchParams(params);
     Object.entries(patch).forEach(([k, v]) => (v === null ? next.delete(k) : next.set(k, v)));
@@ -159,12 +161,35 @@ export function SuiviEleve() {
               {eleveIndex < eleves.length - 1 ? nameOf(eleves[eleveIndex + 1]) : ''} →
             </Button>
           </div>
-          <SuiviCompetences
-            key={`${eleve.id}-${periodeKey}`}
-            classe={classe}
-            eleveId={eleve.id}
-            periode={periodeKey === 'annee' ? null : (periode ?? null)}
-          />
+          <div className="d-flex gap-8" role="tablist" aria-label={t('evaluations.suivi.eleve.title')}>
+            {(
+              [
+                ['suivi', 'evaluations.suivi.eleve.title'],
+                ['bfc', 'evaluations.bilan.fin.cycle.title'],
+              ] as const
+            ).map(([id, label]) => (
+              <button
+                key={id}
+                type="button"
+                role="tab"
+                aria-selected={vue === id}
+                className={`btn ${vue === id ? 'btn-primary' : 'btn-outline-primary'}`}
+                onClick={() => setVue(id)}
+              >
+                {t(label)}
+              </button>
+            ))}
+          </div>
+          {vue === 'suivi' ? (
+            <SuiviCompetences
+              key={`${eleve.id}-${periodeKey}`}
+              classe={classe}
+              eleveId={eleve.id}
+              periode={periodeKey === 'annee' ? null : (periode ?? null)}
+            />
+          ) : (
+            <BilanFinCycle key={eleve.id} classe={classe} eleveId={eleve.id} />
+          )}
         </>
       )}
     </div>

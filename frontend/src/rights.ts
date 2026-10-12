@@ -20,6 +20,9 @@ export const WORKFLOW = {
   canUpdateAppreciations: 'fr.openent.competences.controllers.ElementBilanPeriodiqueController|createAppreciationBilanPeriodique',
   canSaisiAppreciationCPE: 'fr.openent.competences.controllers.BilanPeriodiqueController|createOrUpdateAppreciationCPE',
   canUpdateRetardAndAbsence: 'fr.openent.competences.controllers.UtilsController|insertRetardOrAbscence',
+  /** Bilan de fin de cycle : synthèse, dispense d'un domaine. */
+  canUpdateBFCSynthese: 'fr.openent.competences.controllers.BFCController|createSyntheseWorfklow',
+  createDispenseDomaineEleve: 'fr.openent.competences.controllers.DomaineController|createDispenseDomaineEleve',
   /** Poser le niveau final d'une compétence dans le suivi d'un élève. */
   saveCompetenceNiveauFinal: 'fr.openent.competences.controllers.CompetenceNoteController|saveCompetenceNiveauFinal',
   /** Droit `viescolaire.adminChefEtab` : personnel de direction (`Utils.isChefEtabOrHeadTeacher`). */

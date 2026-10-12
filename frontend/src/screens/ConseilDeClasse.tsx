@@ -5,6 +5,7 @@ import { useTranslation } from 'react-i18next';
 
 import * as api from '../api';
 import { acquisRow, conseilRights, isEmptyRow, moyenneGenerale } from '../conseil';
+import { BilanFinCycle } from '../features/BilanFinCycle';
 import { AvisPanel, Graphiques, ProjetsEleve, Synthese, VieScolaire } from '../features/ConseilTabs';
 import { ClasseSelect, StructureSelect, usePeriodeLabel } from '../features/Filters';
 import { AppreciationInput } from '../features/SaisieInputs';
@@ -21,8 +22,7 @@ import type { PeriodeClasse } from '../types';
  * compétences validées.
  *
  * Onglets portés : suivi des acquis (avec la synthèse), projets, vie scolaire ; avis du conseil
- * et d'orientation à côté ; graphiques. Le bilan de fin de cycle renvoie vers la version
- * précédente.
+ * et d'orientation à côté ; graphiques ; bilan de fin de cycle.
  */
 export function ConseilDeClasse() {
   const { t } = useTranslation(['competences', 'viescolaire', 'common']);
@@ -146,15 +146,14 @@ export function ConseilDeClasse() {
   );
 }
 
-type ConseilTab = 'acquis' | 'projets' | 'vie' | 'graphiques';
+type ConseilTab = 'acquis' | 'projets' | 'vie' | 'graphiques' | 'bfc';
 const TABS: Array<{ id: ConseilTab; label: string }> = [
   { id: 'acquis', label: 'evaluation.bilan.periodique.suivi.acquis' },
   { id: 'projets', label: 'evaluation.bilan.periodique.projets' },
   { id: 'vie', label: 'evaluation.bilan.periodique.vie.scolaire' },
   { id: 'graphiques', label: 'evaluation.bilan.periodique.graphiques' },
+  { id: 'bfc', label: 'evaluations.bilan.fin.cycle.title' },
 ];
-/** Onglets non portés : ils ouvrent l'AngularJS sur le conseil de classe. */
-const OLD_TABS = ['evaluations.bilan.fin.cycle.title'];
 
 /** Un élève au conseil : onglets, avis, et droits de saisie de la période. */
 function ConseilEleve({
@@ -197,11 +196,6 @@ function ConseilEleve({
             {t(x.label)}
           </button>
         ))}
-        {OLD_TABS.map((label) => (
-          <a key={label} className="btn btn-outline-secondary" href="/competences?ui=angular#/conseil/de/classe" title={t('competences.switch.notmigrated.action')}>
-            {t(label)} ↗
-          </a>
-        ))}
       </div>
       {tab === 'acquis' && (
         <>
@@ -211,6 +205,7 @@ function ConseilEleve({
       )}
       {tab === 'projets' && <ProjetsEleve {...ctx} editable={can.appreciationsProjets} />}
       {tab === 'vie' && <VieScolaire {...ctx} canEdit={can.vieScolaire} canAppreciation={can.appreciationCPE} />}
+      {tab === 'bfc' && <BilanFinCycle classe={classe} eleveId={eleveId} />}
       {tab === 'graphiques' && (
         <>
           <Graphiques {...ctx} />
