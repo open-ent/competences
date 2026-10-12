@@ -939,5 +939,8 @@
   "competences.react.releve.export.previous.appreciations": "Comments of previous periods",
   "competences.react.import.example": "Sample CSV file",
   "competences.react.export.csv": "As CSV",
-  "competences.react.admin.archives.title": "Failed archive exports"
+  "competences.react.admin.archives.title": "Failed archive exports",
+  "competences.react.bulletins.models": "Report card templates",
+  "competences.react.bulletins.model.update": "Save options to this template",
+  "competences.react.bulletins.model.delete": "Delete this template"
 }

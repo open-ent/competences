@@ -1,12 +1,13 @@
 import { Alert, Button, LoadingScreen, Modal } from '@open-ent/react';
-import { useQueries, useQuery } from '@tanstack/react-query';
+import { useQueries, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useEffect, useId, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
 import * as api from '../api';
 import { drawDomaineChart } from '../features/bulletinGraph';
 import { graphRows } from '../graphiques';
-import { BULLETIN_OPTIONS, bulletinBody, bulletinPeriodes, orientationDefaultKey, PrintOptions } from '../bulletins';
+import { ReportModels } from '../features/ReportModels';
+import { applyModel, BULLETIN_OPTIONS, bulletinBody, bulletinPeriodes, orientationDefaultKey, PrintOptions } from '../bulletins';
 import { StructureSelect, usePeriodeLabel } from '../features/Filters';
 import { isChefEtabOrHeadTeacher, sortClasses } from '../rules';
 import { levelsForCycle, sortEleves } from '../saisie';
@@ -21,8 +22,8 @@ type Student = EleveDevoir & { idClasse: string; classeName: string };
  * mémorisées dans la même préférence que l'AngularJS (`competences.printBulletin`).
  *
  * Le bilan par domaine se dessine ici, un graphique par élève, puis se dépose sur le serveur qui
- * l'insère dans le PDF. Pas encore portés : les modèles d'options enregistrés, l'envoi du logo et
- * de la signature (ceux déjà enregistrés pour l'établissement sont bien utilisés).
+ * l'insère dans le PDF. Modèles d'options nommés ; logo de l'établissement, nom et signature du
+ * chef d'établissement déposés et enregistrés pour l'établissement.
  */
 export function Bulletins() {
   const { t } = useTranslation(['competences', 'viescolaire', 'common']);
@@ -77,12 +78,17 @@ export function Bulletins() {
   const modelsQuery = useQuery({ queryKey: ['competences', structureId, 'matiere-models'], queryFn: () => api.getMatiereModels(structureId), enabled: !!structureId });
   const infosQuery = useQuery({ queryKey: ['competences', structureId, 'bulletin-infos'], queryFn: () => api.getBulletinStructureInfos(structureId), enabled: !!structureId });
   const preferenceQuery = useQuery({ queryKey: ['competences', 'preference-competences'], queryFn: api.getCompetencesPreference, staleTime: Infinity });
+  const [modelId, setModelId] = useState<string | null>(null);
+  const [uploading, setUploading] = useState(false);
+  const queryClient = useQueryClient();
 
   // Options mémorisées, puis nom du chef d'établissement enregistré pour l'établissement.
   useEffect(() => {
     if (!preferenceQuery.data) return;
     const saved = (preferenceQuery.data.printBulletin as PrintOptions | undefined) ?? {};
     setPrint((p) => ({ ...saved, ...p, nameCE: saved.nameCE ?? infosQuery.data?.nameAndBrad?.name ?? p.nameCE }));
+    const chosen = preferenceQuery.data.idModelBulletinSelected as { _id?: string } | undefined;
+    if (chosen?._id) setModelId(chosen._id);
   }, [preferenceQuery.data, infosQuery.data]);
   useEffect(() => {
     setMention(t('conseil.avis.mention'));
@@ -178,7 +184,7 @@ export function Bulletins() {
     }
     // Mémorisation des options, comme l'AngularJS, dans la préférence partagée.
     const preference = preferenceQuery.data ?? {};
-    void api.setCompetencesPreference({ ...preference, printBulletin: print });
+    void api.setCompetencesPreference({ ...preference, printBulletin: print, ...(modelId ? { idModelBulletinSelected: { _id: modelId } } : {}) });
     try {
       setBusy(true);
       const exists = await api.bulletinsExist(
@@ -299,6 +305,22 @@ export function Bulletins() {
 
       <section className="card p-16 d-flex flex-column gap-12">
         <h2 className="h6 mb-0">{t('viescolaire.utils.options')}</h2>
+        <ReportModels
+          selectedId={modelId}
+          print={print}
+          texts={{ mentionClass: mention, orientationOpinion: orientation }}
+          onSelect={(model) => {
+            setModelId(model?._id ?? null);
+            if (model && model.preferencesCheckbox.length + Object.keys(model.preferencesText ?? {}).length > 0) {
+              const applied = applyModel(print, model);
+              setPrint(applied);
+              if (typeof applied.mentionClass === 'string' && applied.mentionClass) setMention(applied.mentionClass);
+              if (typeof applied.orientationOpinion === 'string' && applied.orientationOpinion) setOrientation(applied.orientationOpinion);
+            }
+            const preference = preferenceQuery.data ?? {};
+            void api.setCompetencesPreference({ ...preference, printBulletin: print, idModelBulletinSelected: model ? { _id: model._id } : null });
+          }}
+        />
         <fieldset>
           <legend className="h6">{t('evaluations.page.one')}</legend>
           <div className="row g-8">{BULLETIN_OPTIONS.page1.map(checkbox)}</div>
@@ -360,8 +382,53 @@ export function Bulletins() {
               <label htmlFor="bulletin-name-ce" className="form-label">
                 {t('evaluations.export.bulletin.nameCE')}
               </label>
-              <input id="bulletin-name-ce" type="text" className="form-control" value={print.nameCE ?? ''} onChange={(e) => set({ nameCE: e.target.value })} />
+              <input
+                id="bulletin-name-ce"
+                type="text"
+                className="form-control"
+                value={print.nameCE ?? ''}
+                onChange={(e) => set({ nameCE: e.target.value })}
+                onBlur={() => void api.saveBulletinCE(structureId, print.nameCE ?? '', infosQuery.data?.nameAndBrad?.path)}
+              />
             </div>
+            {(
+              [
+                ['logo', 'evaluations.add.file.structure', infosQuery.data?.imgStructure?.path],
+                ['signature', 'evaluations.add.file.signature', infosQuery.data?.nameAndBrad?.path],
+              ] as const
+            ).map(([kind, label, path]) => (
+              <div key={kind} className="col-12 col-md-6">
+                <label htmlFor={`bulletin-${kind}`} className="form-label">
+                  {t(label)}
+                </label>
+                <div className="d-flex align-items-center gap-8">
+                  {path && !path.includes('image-default') && <img src={path} alt="" style={{ maxHeight: 40, maxWidth: 80 }} />}
+                  <input
+                    id={`bulletin-${kind}`}
+                    type="file"
+                    accept="image/*"
+                    className="form-control"
+                    disabled={uploading}
+                    onChange={async (e) => {
+                      const file = e.target.files?.[0];
+                      if (!file) return;
+                      setUploading(true);
+                      try {
+                        const uploaded = await api.uploadWorkspaceImage(file);
+                        if (kind === 'logo') await api.saveBulletinLogo(structureId, uploaded);
+                        else await api.saveBulletinCE(structureId, print.nameCE ?? '', uploaded);
+                        await queryClient.invalidateQueries({ queryKey: ['competences', structureId, 'bulletin-infos'] });
+                      } catch {
+                        setMessage({ type: 'danger', text: t('competences.react.saisie.save.error') });
+                      } finally {
+                        setUploading(false);
+                      }
+                    }}
+                  />
+                </div>
+                {kind === 'signature' && <div className="small text-muted">{t('evaluations.export.bulletin.legendSignature')}</div>}
+              </div>
+            ))}
             <div className="col-12 col-md-6">
               <div className="form-check mt-24">
                 <input id="bulletin-use-model" type="checkbox" className="form-check-input" checked={flag('useModel')} onChange={(e) => set({ useModel: e.target.checked })} />

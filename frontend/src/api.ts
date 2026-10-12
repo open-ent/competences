@@ -9,6 +9,7 @@ import type { ProjetAppreciation, ProjetElement } from './projets';
 import type { MoyenneFinale, SubTopicService } from './releveFamille';
 import type { GraphEntry } from './graphiques';
 import type { BfcValeur, EleveEnsCpl, EnsCpl, NiveauEnsCpl } from './bfc';
+import type { ReportModel } from './bulletins';
 import type { RecapEvalData, ReleveExportData, TableauData } from './releveExport';
 import type { ClasseEvaluation, CompetenceEvaluation, Conversion } from './suivi';
 
@@ -1075,3 +1076,34 @@ export interface ExportLog {
 
 /** Exports d'archives (bulletins) tombés en erreur (`GET /competences/admin/exports/logs`). */
 export const getExportLogs = async (): Promise<ExportLog[]> => (await getJson<ExportLog[]>('/competences/admin/exports/logs')) ?? [];
+
+// ── Bulletins : modèles d'options, logo et signature ─────────────────────────
+
+export const getReportModels = async (structureId: string): Promise<ReportModel[]> =>
+  (await getJson<{ results?: ReportModel[] }>(`/competences/reports-models-print-export/structure/${structureId}`))?.results ?? [];
+
+export const createReportModel = async (body: { structureId: string; title: string; preferencesCheckbox: Record<string, boolean>; preferencesText: Record<string, unknown> }) =>
+  (await send<{ _id: string }>('POST', '/competences/report-model-print-export', body))!._id;
+
+export const updateReportModel = (id: string, body: Partial<{ title: string; preferencesCheckbox: Record<string, boolean>; preferencesText: Record<string, unknown> }>) =>
+  send('PUT', `/competences/report-model-print-export/${id}`, { _id: id, ...body });
+
+export const deleteReportModel = (id: string) => send('DELETE', `/competences/report-model-print-export/${id}`);
+
+/** Dépose une image dans l'espace documentaire de l'usager ; le serveur la relira par son identifiant. */
+export async function uploadWorkspaceImage(file: File): Promise<string> {
+  const form = new FormData();
+  form.append('file', file, file.name);
+  const headers = xsrfHeaders();
+  delete headers['Content-Type'];
+  const res = await fetch('/workspace/document?quality=1', { credentials: 'include', method: 'POST', headers, body: form });
+  if (!res.ok) throw new Error(`${res.status} workspace`);
+  return `/workspace/document/${((await res.json()) as { _id: string })._id}`;
+}
+
+/** Logo de l'établissement sur les bulletins. */
+export const saveBulletinLogo = (structureId: string, path: string) => send('POST', '/competences/image/bulletins/structure', { idStructure: structureId, path });
+
+/** Nom et signature du chef d'établissement sur les bulletins (`setInformationsCE`). */
+export const saveBulletinCE = (structureId: string, name: string, path?: string) =>
+  send('POST', '/competences/informations/bulletins/ce', { idStructure: structureId, path: path ?? '/img/illustrations/image-default.svg', name });

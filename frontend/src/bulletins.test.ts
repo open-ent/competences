@@ -74,3 +74,21 @@ describe('bilan par domaine', () => {
     expect(bulletinBody({ showBilanPerDomaines: true }, ctx).showBilanPerDomaines).toBe(false);
   });
 });
+
+import { applyModel, modelPreferences } from './bulletins';
+
+describe('modèles d’options', () => {
+  it('appliquer un modèle coche ses options et décoche les autres, reprend ses textes', () => {
+    const print = applyModel({ coefficient: false, studentRank: true }, {
+      _id: 'm', userId: 'u', structureId: 's', title: 'T', preferencesCheckbox: ['coefficient'], preferencesText: { nameCE: 'M. Dupont', imgSignature: null },
+    });
+    expect(print).toMatchObject({ coefficient: true, studentRank: false, nameCE: 'M. Dupont' });
+    expect('imgSignature' in print).toBe(false);
+  });
+
+  it('enregistrer : toutes les cases connues, et les libellés de mention et d’avis', () => {
+    const p = modelPreferences({ coefficient: true }, { mentionClass: 'Mention', orientationOpinion: 'Avis' });
+    expect(p.preferencesCheckbox).toMatchObject({ coefficient: true, studentRank: false });
+    expect(p.preferencesText).toMatchObject({ mentionClass: 'Mention', orientationOpinion: 'Avis' });
+  });
+});

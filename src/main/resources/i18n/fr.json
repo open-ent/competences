@@ -939,5 +939,8 @@
   "competences.react.releve.export.previous.appreciations": "Appréciations des périodes précédentes",
   "competences.react.import.example": "Exemple de fichier CSV",
   "competences.react.export.csv": "Au format CSV",
-  "competences.react.admin.archives.title": "Exports d'archives en erreur"
+  "competences.react.admin.archives.title": "Exports d'archives en erreur",
+  "competences.react.bulletins.models": "Modèles de bulletin",
+  "competences.react.bulletins.model.update": "Enregistrer les options dans ce modèle",
+  "competences.react.bulletins.model.delete": "Supprimer ce modèle"
 }

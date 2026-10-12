@@ -131,3 +131,43 @@ export function otherTeacherName(t: { civility?: string; firstName?: string; las
   const initial = t.firstName ? ` ${t.firstName[0]}. ` : ' ';
   return ` : ${t.civility ?? ''}${initial}${t.lastName ?? ''}`;
 }
+
+// ── Modèles d'options (`ReportModelPrintExport`) ────────────────────────────
+
+/** Options cochables qu'un modèle enregistre (`ReportsModelsPrintExportPreferencesCheckboxConst`). */
+export const MODEL_CHECKBOXES = [
+  'moyenneClasse', 'moyenneGenerale', 'getProgramElements', 'getResponsable', 'coefficient', 'classAverageMinMax',
+  'moyenneEleve', 'showBilanPerDomaines', 'showProjects', 'moyenneClasseSousMat', 'moyenneAnnuelle', 'withLevelsStudent',
+  'showFamily', 'withLevelsClass', 'positionnement', 'studentRank', 'useModel', 'agricultureLogo', 'moyenneEleveSousMat',
+  'positionnementSousMat', 'addOtherTeacher', 'hideHeadTeacher', 'simple', 'neutre', 'showSkillsValidatedPercentage',
+] as const;
+/** Textes qu'un modèle enregistre (`ReportsModelsPrintExportPreferencesTextConst`). */
+export const MODEL_TEXTS = [
+  'mentionOpinion', 'orientationOpinion', 'nameCE', 'imgStructure', 'imgSignature', 'otherTeacherId', 'otherTeacherName',
+  'functionOtherTeacher', 'idModel', 'mentionClass',
+] as const;
+
+export interface ReportModel {
+  _id: string;
+  userId: string;
+  structureId: string;
+  title: string;
+  /** Les options cochées, en liste (le serveur ne garde que celles à vrai). */
+  preferencesCheckbox: string[];
+  preferencesText: Record<string, unknown>;
+}
+
+/** Les options d'un modèle appliquées : toute case absente du modèle est décochée. */
+export function applyModel(print: PrintOptions, model: ReportModel): PrintOptions {
+  const checks = Object.fromEntries(MODEL_CHECKBOXES.map((k) => [k, model.preferencesCheckbox.includes(k)]));
+  const texts = Object.fromEntries(Object.entries(model.preferencesText ?? {}).filter(([, v]) => v !== undefined && v !== null));
+  return { ...print, ...checks, ...texts };
+}
+
+/** Le corps envoyé pour enregistrer les options courantes dans un modèle (`setPreferences…WithClean`). */
+export function modelPreferences(print: PrintOptions, texts: { mentionClass: string; orientationOpinion: string }) {
+  return {
+    preferencesCheckbox: Object.fromEntries(MODEL_CHECKBOXES.map((k) => [k, print[k] === true])),
+    preferencesText: Object.fromEntries(MODEL_TEXTS.map((k) => [k, k === 'mentionClass' ? texts.mentionClass : k === 'orientationOpinion' ? texts.orientationOpinion : print[k]])),
+  };
+}
