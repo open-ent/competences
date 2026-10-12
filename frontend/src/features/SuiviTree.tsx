@@ -47,6 +47,8 @@ export type BlockProps = {
   onSetFinal: (competenceId: number, evals: CompetenceEvaluation[], current: number | undefined) => Promise<void>;
   /** Fiche d'un devoir : le niveau obtenu tel quel, sans table de conversion ni niveau final. */
   rawLevel?: boolean;
+  /** Suivi enseignant : évaluer la compétence hors de toute évaluation (« évaluation libre »). */
+  onEvaluationLibre?: (competence: { id: number; nom: string }) => void;
 };
 
 /** Un domaine, ses compétences visibles, puis ses sous-domaines ; caché s'il ne montre rien. */
@@ -143,6 +145,13 @@ function CompetenceRow({
           </>
         )}
       </div>
+      {open && props.onEvaluationLibre && (
+        <div className="mt-8">
+          <button type="button" className="btn btn-sm btn-outline-primary" onClick={() => props.onEvaluationLibre!(competence)}>
+            {t('evaluations.evaluation.libre.add')}
+          </button>
+        </div>
+      )}
       {open && (
         <table className="table table-sm small mt-8 mb-0">
           <thead>

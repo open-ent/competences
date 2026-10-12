@@ -6,6 +6,11 @@ import { useSearchParams } from 'react-router-dom';
 
 import * as api from '../api';
 import { BilanFinCycle } from '../features/BilanFinCycle';
+import type { FamilyChild } from '../family';
+import { useChildData } from '../familyContext';
+import { BulletinView } from './FamilyBulletin';
+import { ReleveView } from './FamilyReleve';
+import { EvaluationLibre } from '../features/EvaluationLibre';
 import { ExportSuivi } from '../features/ExportSuivi';
 import { ClasseSelect, StructureSelect, usePeriodeLabel } from '../features/Filters';
 import { DomaineBlock, EnseignementBlocs, Legend, VueToggle } from '../features/SuiviTree';
@@ -23,12 +28,12 @@ import type { PeriodeClasse } from '../types';
  * Accepte `?idEleve=…&idClasse=…`, posés par la recherche d'élève de l'accueil (comme l'AngularJS).
  *
  * Présentation par domaine ou par enseignement ; bilan de fin de cycle en second onglet. Pas encore portés : graphiques,
- * onglets notes et bulletins, évaluation libre. Export PDF du relevé de compétences.
+ * Onglets suivi des notes et bulletins, évaluation libre, export PDF du relevé de compétences.
  */
 export function SuiviEleve() {
   const { t } = useTranslation(['competences', 'viescolaire', 'common']);
   const [params, setParams] = useSearchParams();
-  const { structures, rightsLoaded, isLoading: structuresLoading } = useStructure();
+  const { structureId, structures, rightsLoaded, isLoading: structuresLoading } = useStructure();
   const data = useStructureData();
   const viewer = useViewer();
   const periodeLabel = usePeriodeLabel();
@@ -38,7 +43,7 @@ export function SuiviEleve() {
   const classeId = params.get('idClasse');
   const eleveId = params.get('idEleve');
   const [periodeKey, setPeriodeKey] = useState<string>('');
-  const [vue, setVue] = useState<'suivi' | 'bfc'>('suivi');
+  const [vue, setVue] = useState<'suivi' | 'notes' | 'bulletins' | 'bfc'>('suivi');
   const [exporting, setExporting] = useState(false);
   const setParam = (patch: Record<string, string | null>) => {
     const next = new URLSearchParams(params);
@@ -166,7 +171,9 @@ export function SuiviEleve() {
           <div className="d-flex gap-8" role="tablist" aria-label={t('evaluations.suivi.eleve.title')}>
             {(
               [
-                ['suivi', 'evaluations.suivi.eleve.title'],
+                ['suivi', 'evaluation.eleve.header.followItems'],
+                ['notes', 'evaluation.eleve.header.followNotes'],
+                ['bulletins', 'evaluation.eleve.header.bulletins'],
                 ['bfc', 'evaluations.bilan.fin.cycle.title'],
               ] as const
             ).map(([id, label]) => (
@@ -196,9 +203,12 @@ export function SuiviEleve() {
               classe={classe}
               eleveId={eleve.id}
               periode={periodeKey === 'annee' ? null : (periode ?? null)}
+              periodes={periodes}
             />
-          ) : (
+          ) : vue === 'bfc' ? (
             <BilanFinCycle key={eleve.id} classe={classe} eleveId={eleve.id} />
+          ) : (
+            <EleveFamilyView key={`${eleve.id}-${vue}`} vue={vue} child={{ id: eleve.id, firstName: eleve.firstName ?? '', lastName: eleve.lastName ?? '', displayName: eleve.displayName, idClasse: classe.id, idStructure: structureId }} />
           )}
         </>
       )}
@@ -210,10 +220,12 @@ function SuiviCompetences({
   classe,
   eleveId,
   periode,
+  periodes,
 }: {
   classe: NonNullable<ReturnType<typeof useStructureData>['classes'][number]>;
   eleveId: string;
   periode: PeriodeClasse | null;
+  periodes: PeriodeClasse[];
 }) {
   const { t } = useTranslation(['competences', 'viescolaire', 'common']);
   const queryClient = useQueryClient();
@@ -225,6 +237,7 @@ function SuiviCompetences({
   const [onlyEvaluated, setOnlyEvaluated] = useState(true);
   const [error, setError] = useState(false);
   const [vue, setVue] = useState<'domaines' | 'enseignements'>('domaines');
+  const [libre, setLibre] = useState<{ id: number; nom: string } | null>(null);
   const data = useStructureData();
 
   const notesKey = ['competences', structureId, 'suivi', eleveId, idCycle, periode?.id_type ?? 'annee'];
@@ -287,6 +300,8 @@ function SuiviCompetences({
     onlyEvaluated,
     finalEditable: canSetFinal && !finalLocked,
     onSetFinal: setFinal,
+    // La direction n'y avait pas accès dans l'AngularJS (« en construction »).
+    onEvaluationLibre: !isChefEtabOrHeadTeacher(viewer) ? setLibre : undefined,
   };
 
   return (
@@ -317,6 +332,17 @@ function SuiviCompetences({
 
       <Legend levels={levels} />
 
+      {libre && (
+        <EvaluationLibre
+          classe={classe}
+          eleveId={eleveId}
+          competence={libre}
+          periodes={periodes}
+          levels={levels}
+          onClose={() => setLibre(null)}
+          onSaved={() => void queryClient.invalidateQueries({ queryKey: notesKey })}
+        />
+      )}
       <VueToggle value={vue} onChange={setVue} />
       {vue === 'enseignements' && enseignementsQuery.isLoading && <LoadingScreen position={false} />}
       {vue === 'enseignements' && (
@@ -328,6 +354,16 @@ function SuiviCompetences({
       {vue === 'domaines' && (domainesQuery.data ?? []).map((domaine) => <DomaineBlock key={domaine.id} domaine={domaine} {...blockProps} />)}
     </section>
   );
+}
+
+/**
+ * Onglets « suivi des notes » et « bulletins » du suivi d'un élève : les vues de l'espace famille,
+ * comme l'AngularJS qui y incluait le relevé des parents (`follow_notes.html`, `bulletins.html`).
+ */
+function EleveFamilyView({ vue, child }: { vue: 'notes' | 'bulletins'; child: FamilyChild }) {
+  const data = useChildData(child);
+  if (data.isLoading) return <LoadingScreen position={false} />;
+  return vue === 'notes' ? <ReleveView child={child} data={data} /> : <BulletinView child={child} data={data} teacher />;
 }
 
 export default SuiviEleve;

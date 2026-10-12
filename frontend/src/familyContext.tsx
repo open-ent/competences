@@ -46,6 +46,9 @@ export function FamilyProvider({ children: content }: { children: ReactNode }) {
   return <FamilyContext.Provider value={value}>{content}</FamilyContext.Provider>;
 }
 
+/** Hors de l'espace famille (onglets du suivi enseignant), le contexte est absent. */
+export const useFamilyOptional = (): FamilyContextValue | null => useContext(FamilyContext);
+
 export function useFamily(): FamilyContextValue {
   const value = useContext(FamilyContext);
   if (!value) throw new Error('useFamily hors de FamilyProvider');

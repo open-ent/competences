@@ -5,7 +5,7 @@ import { useTranslation } from 'react-i18next';
 
 import * as api from '../api';
 import { currentPeriode, FamilyChild } from '../family';
-import { todayLocal, useChildData, useFamily } from '../familyContext';
+import { todayLocal, useChildData, useFamilyOptional } from '../familyContext';
 import { WithChild } from '../features/FamilyParts';
 import { usePeriodeLabel } from '../features/Filters';
 
@@ -17,10 +17,11 @@ export function FamilyBulletin() {
   return <WithChild render={(child, data) => <BulletinView child={child} data={data} />} />;
 }
 
-function BulletinView({ child, data }: { child: FamilyChild; data: ReturnType<typeof useChildData> }) {
+/** `teacher` : l'enseignant voit le bulletin généré même avant sa publication aux familles. */
+export function BulletinView({ child, data, teacher }: { child: FamilyChild; data: ReturnType<typeof useChildData>; teacher?: boolean }) {
   const { t } = useTranslation(['competences', 'viescolaire', 'common']);
   const { user } = useEdificeClient();
-  const { isParent } = useFamily();
+  const isParent = useFamilyOptional()?.isParent ?? false;
   const periodeLabel = usePeriodeLabel();
   const periodeId = useId();
   const [periode, setPeriode] = useState<number | null>(() => currentPeriode(data.periodes, todayLocal()) ?? data.periodes[0]?.id_type ?? null);
@@ -36,7 +37,7 @@ function BulletinView({ child, data }: { child: FamilyChild; data: ReturnType<ty
         idClasse: child.idClasse,
         idParent: isParent ? ((user as { externalId?: string } | undefined)?.externalId ?? null) : null,
       }),
-    enabled: !!selected?.publication_bulletin,
+    enabled: !!selected && (teacher || !!selected.publication_bulletin),
   });
   const url = useMemo(() => (bulletinQuery.data ? URL.createObjectURL(bulletinQuery.data) : null), [bulletinQuery.data]);
   useEffect(() => () => void (url && URL.revokeObjectURL(url)), [url]);
@@ -66,7 +67,7 @@ function BulletinView({ child, data }: { child: FamilyChild; data: ReturnType<ty
           </a>
         )}
       </div>
-      {bulletinQuery.isLoading && selected?.publication_bulletin ? (
+      {bulletinQuery.isLoading && bulletinQuery.fetchStatus !== 'idle' ? (
         <LoadingScreen position={false} />
       ) : url ? (
         <iframe title={t('evaluations.bulletin')} src={url} className="w-100 border rounded" style={{ height: '80vh' }} />

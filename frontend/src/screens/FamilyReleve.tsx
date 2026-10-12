@@ -5,7 +5,7 @@ import { useTranslation } from 'react-i18next';
 
 import * as api from '../api';
 import { currentPeriode, FamilyChild, FamilyDevoir } from '../family';
-import { todayLocal, useChildData, useFamily } from '../familyContext';
+import { todayLocal, useChildData, useFamilyOptional } from '../familyContext';
 import { WithChild } from '../features/FamilyParts';
 import { usePeriodeLabel } from '../features/Filters';
 import { formatDate } from '../rules';
@@ -20,9 +20,9 @@ export function FamilyReleve() {
   return <WithChild render={(child, data) => <ReleveView child={child} data={data} />} />;
 }
 
-function ReleveView({ child, data }: { child: FamilyChild; data: ReturnType<typeof useChildData> }) {
+export function ReleveView({ child, data }: { child: FamilyChild; data: ReturnType<typeof useChildData> }) {
   const { t } = useTranslation(['competences', 'viescolaire', 'common']);
-  const { isParent } = useFamily();
+  const isParent = useFamilyOptional()?.isParent ?? false;
   const periodeLabel = usePeriodeLabel();
   const periodeId = useId();
   const [periode, setPeriode] = useState<number | null>(() => currentPeriode(data.periodes, todayLocal()));
