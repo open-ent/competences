@@ -865,3 +865,140 @@ export const saveDigitalAppreciationClasse = (classe: Pick<Classe, 'id' | 'type_
     : id
       ? send('DELETE', `/competences/classAppreciationDigitalSkills?idClassApp=${id}`)
       : Promise.resolve(null);
+
+// ── Impressions et exports PDF ───────────────────────────────────────────────
+
+/** Déclenche le téléchargement d'un fichier reçu du serveur. */
+export function saveBlob(blob: Blob, filename: string) {
+  const link = document.createElement('a');
+  link.href = URL.createObjectURL(blob);
+  link.download = filename;
+  document.body.appendChild(link);
+  link.click();
+  setTimeout(() => {
+    document.body.removeChild(link);
+    URL.revokeObjectURL(link.href);
+  }, 100);
+}
+
+/** Erreur d'un export : le message du serveur (`{"error":"exportDevoir : empty result."}`). */
+export class ExportError extends Error {}
+
+/**
+ * Télécharge un export. Avec `check`, l'export est d'abord demandé en JSON (`&json=true`) — c'est
+ * ainsi que le serveur dit pourquoi il ne peut pas le produire —, puis en fichier.
+ */
+export async function downloadExport(url: string, options: { check?: boolean; fallbackName: string }): Promise<void> {
+  if (options.check) {
+    const probe = await fetch(`${url}&json=true`, { credentials: 'include', headers: { Accept: 'application/json' } });
+    if (!probe.ok) {
+      let message = '';
+      try {
+        message = ((await probe.json()) as { error?: string }).error ?? '';
+      } catch {
+        /* corps illisible */
+      }
+      throw new ExportError(message);
+    }
+  }
+  const res = await fetch(url, { credentials: 'include' });
+  if (!res.ok || (res.headers.get('content-type') ?? '').includes('text/html')) throw new ExportError('');
+  const disposition = res.headers.get('content-disposition') ?? '';
+  saveBlob(await res.blob(), (disposition.split('filename=')[1] ?? options.fallbackName).replace(/"/g, ''));
+}
+
+/** L'usager a-t-il personnalisé ses niveaux de maîtrise (`usePerso`, transmis aux exports) ? */
+export const getUsePerso = async (userId: string): Promise<boolean> => {
+  try {
+    return ((await getJson<unknown[]>(`/competences/maitrise/perso/use/${userId}`)) ?? []).length > 0;
+  } catch {
+    return false;
+  }
+};
+
+export interface CartoucheOptions {
+  byEleve: boolean;
+  inColor: boolean;
+  nbr: number;
+  image: boolean;
+  withResult: boolean;
+  withAppreciations: boolean;
+}
+
+/** URL d'impression d'une évaluation (`printCartouche`, `exportDevoir`). */
+export const devoirPrintUrl = {
+  formSaisie: (devoirId: number) => `/competences/devoirs/print/${devoirId}/formsaisie`,
+  cartouche: (devoirId: number, o: CartoucheOptions, usePerso: boolean) =>
+    `/competences/devoirs/print/${devoirId}/cartouche?eleve=${o.byEleve}&color=${o.inColor}&usePerso=${usePerso}&nbr=${o.nbr}&image=${o.image}&withResult=${o.withResult}&withAppreciations=${o.withAppreciations}`,
+  /** `text` : libellés des niveaux en toutes lettres plutôt qu'en couleur. */
+  devoir: (devoirId: number, text: boolean, usePerso: boolean) => `/competences/devoirs/print/${devoirId}/export?text=${text}&usePerso=${usePerso}`,
+};
+
+/** Clé i18n du motif de refus d'un export du suivi (`errorResult` de l'AngularJS). */
+export function exportErrorKey(message: string): string {
+  const m = message.toLowerCase();
+  if (m.includes('no exams') || m.includes('eval not found')) return 'evaluations.export.eval.not.found.err';
+  if (m.includes('devoirs not found') || m.includes('periode not found')) return 'evaluations.export.periode.not.found.err';
+  if (m.includes('matieres not found') || m.includes('classe not found')) return 'evaluations.export.classe.not.found.err';
+  if (m.includes('domaines not found') || m.includes('etab not found')) return 'evaluations.export.etab.not.found.err';
+  if (m.includes('bfc not found')) return 'evaluations.export.bfc.not.found.err';
+  if (m.includes('eleves not found')) return 'evaluations.export.eleves.not.found.err';
+  if (m.includes('different cycle')) return 'evaluations.export.cycle.not.found.err';
+  if (m.includes('several classes')) return 'evaluation.export.eleves.in.several.classes.err';
+  if (m.includes('no score')) return 'competence.class.followup.export.average.error.noScore';
+  return 'evaluations.export.err';
+}
+
+const periodeParam = (idPeriode: number | null) => (idPeriode !== null ? `&idPeriode=${idPeriode}` : '');
+
+/** Exports PDF du suivi d'un élève et du suivi d'une classe. `text` : niveaux en toutes lettres. */
+export const suiviExportUrl = {
+  /** Relevé de compétences d'un élève, ou de toute la classe. */
+  releveComp: (p: {
+    structureId: string;
+    text: boolean;
+    usePerso: boolean;
+    matiereIds: string[];
+    idPeriode: number | null;
+    byEnseignement: boolean;
+    eleveId?: string;
+    classeId?: string;
+  }) =>
+    `/competences/releveComp/print/export?text=${p.text}&usePerso=${p.usePerso}${p.eleveId ? `&idEleve=${p.eleveId}` : ''}&idEtablissement=${p.structureId}${p.matiereIds
+      .map((id) => `&idMatiere=${id}`)
+      .join('')}${periodeParam(p.idPeriode)}${p.classeId ? `&idClasse=${p.classeId}` : ''}${p.eleveId ? '&isCycle=false' : ''}&byEnseignement=${p.byEnseignement}`,
+  recapEval: (p: { structureId: string; classeId: string; text: boolean; usePerso: boolean; idPeriode: number | null }) =>
+    `/competences/recapEval/print/${p.classeId}/export?text=${p.text}&usePerso=${p.usePerso}&structureId=${p.structureId}${periodeParam(p.idPeriode)}`,
+  recapAppreciations: (p: { structureId: string; classeId: string; text: boolean; idPeriode: number | null }) =>
+    `/competences/recapAppreciations/print/${p.classeId}/export?text=${p.text}${periodeParam(p.idPeriode)}&idStructure=${p.structureId}`,
+  tabMoys: (p: {
+    structureId: string;
+    classe: Pick<Classe, 'id' | 'type_groupe' | 'name'>;
+    text: boolean;
+    idPeriode: number | null;
+    withMoyGeneraleByEleve: boolean;
+    withMoyMinMaxByMat: boolean;
+    withAppreciations: boolean;
+  }) =>
+    `/competences/suiviClasse/tableau/moyenne/${p.classe.id}/export?withMoyGeneraleByEleve=${p.withMoyGeneraleByEleve}&withAppreciations=${p.withAppreciations}&withMoyMinMaxByMat=${p.withMoyMinMaxByMat}&text=${p.text}&idEtablissement=${p.structureId}&typeGroupe=${p.classe.type_groupe}&name=${encodeURIComponent(p.classe.name)}${periodeParam(p.idPeriode)}`,
+};
+
+/** Relevé de notes de la classe en PDF (`Utils.getClasseReleve`). */
+export async function downloadClasseReleve(p: { structureId: string; classe: Pick<Classe, 'id' | 'name'>; periode: { id_type: number; type: number; ordre: number } | null }) {
+  const res = await fetch(`/competences/releve/classe/pdf?&idStructure=${p.structureId}`, {
+    credentials: 'include',
+    method: 'POST',
+    headers: xsrfHeaders(),
+    body: JSON.stringify({
+      idPeriode: p.periode?.id_type,
+      idClasse: p.classe.id,
+      idTypePeriode: p.periode?.type,
+      ordre: p.periode?.ordre,
+      idStructure: p.structureId,
+      classeName: p.classe.name,
+    }),
+  });
+  if (!res.ok) throw new ExportError('');
+  const disposition = res.headers.get('content-disposition') ?? '';
+  saveBlob(await res.blob(), (disposition.split('filename=')[1] ?? `releve-${p.classe.name}.pdf`).replace(/"/g, ''));
+}

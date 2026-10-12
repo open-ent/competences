@@ -927,5 +927,10 @@
   "competences.react.bfc.pdf.classe": "Class PDF",
   "competences.react.enscpl.none": "No complementary teaching is defined (reference data to load: scripts/ops/competences/05).",
   "competences.react.enscpl.niveau.langue": "Regional language level",
-  "competences.react.suivi.vue": "Follow-up layout"
+  "competences.react.suivi.vue": "Follow-up layout",
+  "competences.react.print.no.student": "The students of this assessment could not be retrieved.",
+  "competences.react.export.text": "Levels in words rather than in colour",
+  "competences.react.export.moy.generale": "Overall average of each student",
+  "competences.react.export.moy.minmax": "Minimum and maximum averages per subject",
+  "competences.react.print": "Print"
 }

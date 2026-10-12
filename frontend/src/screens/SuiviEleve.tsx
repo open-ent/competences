@@ -6,6 +6,7 @@ import { useSearchParams } from 'react-router-dom';
 
 import * as api from '../api';
 import { BilanFinCycle } from '../features/BilanFinCycle';
+import { ExportSuivi } from '../features/ExportSuivi';
 import { ClasseSelect, StructureSelect, usePeriodeLabel } from '../features/Filters';
 import { DomaineBlock, EnseignementBlocs, Legend, VueToggle } from '../features/SuiviTree';
 import { isChefEtabOrHeadTeacher, isValidClasse, sortClasses } from '../rules';
@@ -22,7 +23,7 @@ import type { PeriodeClasse } from '../types';
  * Accepte `?idEleve=…&idClasse=…`, posés par la recherche d'élève de l'accueil (comme l'AngularJS).
  *
  * Présentation par domaine ou par enseignement ; bilan de fin de cycle en second onglet. Pas encore portés : graphiques,
- * onglets notes et bulletins, export PDF du suivi, évaluation libre.
+ * onglets notes et bulletins, évaluation libre. Export PDF du relevé de compétences.
  */
 export function SuiviEleve() {
   const { t } = useTranslation(['competences', 'viescolaire', 'common']);
@@ -38,6 +39,7 @@ export function SuiviEleve() {
   const eleveId = params.get('idEleve');
   const [periodeKey, setPeriodeKey] = useState<string>('');
   const [vue, setVue] = useState<'suivi' | 'bfc'>('suivi');
+  const [exporting, setExporting] = useState(false);
   const setParam = (patch: Record<string, string | null>) => {
     const next = new URLSearchParams(params);
     Object.entries(patch).forEach(([k, v]) => (v === null ? next.delete(k) : next.set(k, v)));
@@ -180,6 +182,14 @@ export function SuiviEleve() {
               </button>
             ))}
           </div>
+          <div className="d-flex justify-content-end">
+            <Button type="button" color="secondary" variant="outline" onClick={() => setExporting(true)}>
+              {t('evaluations.export.file')}
+            </Button>
+          </div>
+          {exporting && (
+            <ExportSuivi classe={classe} periode={periodeKey === 'annee' ? null : (periode ?? null)} eleveId={eleve.id} onClose={() => setExporting(false)} />
+          )}
           {vue === 'suivi' ? (
             <SuiviCompetences
               key={`${eleve.id}-${periodeKey}`}

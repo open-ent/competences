@@ -927,5 +927,10 @@
   "competences.react.bfc.pdf.classe": "PDF de la classe",
   "competences.react.enscpl.none": "Aucun enseignement de complément n'est défini (référentiel à charger : scripts/ops/competences/05).",
   "competences.react.enscpl.niveau.langue": "Niveau en langue régionale",
-  "competences.react.suivi.vue": "Présentation du suivi"
+  "competences.react.suivi.vue": "Présentation du suivi",
+  "competences.react.print.no.student": "Les élèves de l'évaluation n'ont pas pu être récupérés.",
+  "competences.react.export.text": "Niveaux en toutes lettres plutôt qu'en couleur",
+  "competences.react.export.moy.generale": "Moyenne générale de chaque élève",
+  "competences.react.export.moy.minmax": "Moyennes minimale et maximale par matière",
+  "competences.react.print": "Imprimer"
 }

@@ -6,6 +6,7 @@ import { Link, useNavigate, useParams } from 'react-router-dom';
 
 import * as api from '../api';
 import { usePeriodeLabel } from '../features/Filters';
+import { PrintDevoir } from '../features/PrintDevoir';
 import { AppreciationInput, NoteInput } from '../features/SaisieInputs';
 import { formatDate, isChefEtabOrHeadTeacher, isHeadTeacher } from '../rules';
 import {
@@ -38,7 +39,7 @@ const LEVEL_SAVE_DELAY = 700;
  * annotation, son niveau sur chaque compétence évaluée, et une appréciation. Rien n'est validé en
  * bloc : chaque case part dès qu'on la quitte, comme dans l'AngularJS.
  *
- * Pas encore portés : l'impression (cartouches, grille de saisie, export) et l'import de notes.
+ * Impression : cartouches, grille de saisie, export. Pas encore porté : l'import de notes.
  */
 export function SaisieDevoir() {
   const { t } = useTranslation(['competences', 'viescolaire', 'common']);
@@ -282,6 +283,8 @@ function SaisieView(props: SaisieViewProps) {
   const selectable = eleves.filter((e) => !isExcluded(e.id));
   const allSelected = selectable.length > 0 && selectable.every((e) => selectedEleves.has(e.id));
   const hasCompetences = competences.length > 0;
+  const [printing, setPrinting] = useState(false);
+  const viewerId = useViewer()?.userId ?? '';
 
   return (
     <div className="d-flex flex-column gap-16">
@@ -292,6 +295,9 @@ function SaisieView(props: SaisieViewProps) {
           {t('title')} : {devoir.name}
         </h1>
         <div className="d-flex flex-wrap gap-8">
+          <Button color="secondary" variant="outline" onClick={() => setPrinting(true)}>
+            {t('competences.react.print')}
+          </Button>
           <Button color="primary" variant="outline" onClick={finish} disabled={locked}>
             {t('evaluations.test.finish')}
           </Button>
@@ -301,6 +307,7 @@ function SaisieView(props: SaisieViewProps) {
         </div>
       </div>
 
+      {printing && <PrintDevoir devoirId={devoir.id} hasCompetences={hasCompetences} userId={viewerId} onClose={() => setPrinting(false)} />}
       {locked && <Alert type="warning">{t('evaluations.devoir.uncancelable')}</Alert>}
       {error && (
         <Alert type="danger" isDismissible onClose={() => setError(null)}>

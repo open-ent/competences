@@ -1,4 +1,4 @@
-import { Alert, LoadingScreen } from '@open-ent/react';
+import { Alert, Button, LoadingScreen } from '@open-ent/react';
 import { useQuery } from '@tanstack/react-query';
 import { useEffect, useId, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -6,6 +6,7 @@ import { Link } from 'react-router-dom';
 
 import * as api from '../api';
 import type { DomaineSuivi } from '../api';
+import { ExportSuivi } from '../features/ExportSuivi';
 import { ClasseSelect, StructureSelect, usePeriodeLabel } from '../features/Filters';
 import { isChefEtabOrHeadTeacher, isValidClasse, sortClasses } from '../rules';
 import { isEvaluable, Level, levelsForCycle, sortEleves, UNEVALUATED_COLOR } from '../saisie';
@@ -28,6 +29,7 @@ export function SuiviClasse() {
   const viewer = useViewer();
   const periodeLabel = usePeriodeLabel();
   const periodeId = useId();
+  const [exporting, setExporting] = useState(false);
   const [classeId, setClasseId] = useState<string | null>(null);
   const [periodeKey, setPeriodeKey] = useState('');
 
@@ -94,7 +96,15 @@ export function SuiviClasse() {
       ) : classe.id_cycle == null ? (
         <Alert type="info">{t('evaluation.suivi.no.cycle')}</Alert>
       ) : (
-        <ClasseView key={`${classe.id}-${periodeKey}`} classe={classe} periode={periode} />
+        <>
+          <div className="d-flex justify-content-end">
+            <Button type="button" color="secondary" variant="outline" onClick={() => setExporting(true)}>
+              {t('evaluations.export.file')}
+            </Button>
+          </div>
+          {exporting && <ExportSuivi classe={classe} periode={periode} onClose={() => setExporting(false)} />}
+          <ClasseView key={`${classe.id}-${periodeKey}`} classe={classe} periode={periode} />
+        </>
       )}
     </div>
   );
