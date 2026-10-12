@@ -2,6 +2,7 @@ import { Navigate, RouteObject, createHashRouter } from 'react-router-dom';
 
 import { ConseilDeClasse } from './screens/ConseilDeClasse';
 import { FamilyBilan } from './screens/FamilyBilan';
+import { FamilyBilanPeriodique } from './screens/FamilyBilanPeriodique';
 import { FamilyBulletin } from './screens/FamilyBulletin';
 import { FamilyDevoir } from './screens/FamilyDevoir';
 import { FamilyDevoirs, FamilyHome } from './screens/FamilyDevoirs';
@@ -11,7 +12,6 @@ import { DevoirFormScreen } from './screens/DevoirFormScreen';
 import { DevoirsList } from './screens/DevoirsList';
 import { Bulletins } from './screens/Bulletins';
 import { Exports } from './screens/Exports';
-import { NotMigrated } from './screens/NotMigrated';
 import { Projets } from './screens/Projets';
 import { Releve } from './screens/Releve';
 import { Root } from './screens/Root';
@@ -25,11 +25,8 @@ import { TeacherHome } from './screens/TeacherHome';
  * un lien copié dans l'une des deux interfaces reste valide dans l'autre.
  *
  * Élèves et parents ont leur propre jeu de routes ({@link familyRoutes}) : les leurs portent les
- * mêmes noms avec un autre sens (`/releve`, `/bulletin`…). Le serveur les garde encore sur
- * l'AngularJS sauf `?ui=react` (`CompetencesController#view`), tant que leur espace n'est pas porté.
- *
- * Les écrans non encore portés tombent sur {@link NotMigrated}, qui renvoie vers l'ancienne IHM EN
- * CONSERVANT le chemin et sa requête.
+ * mêmes noms avec un autre sens (`/releve`, `/bulletin`…). Tous les écrans de l'AngularJS sont
+ * portés ; le serveur choisit l'interface (`?ui`, préférence `competencesUi`, conf `frontend-ui`).
  */
 export const routes: RouteObject[] = [
   {
@@ -47,7 +44,6 @@ export const routes: RouteObject[] = [
       { path: 'conseil/de/classe', element: <ConseilDeClasse /> },
       { path: 'projets', element: <Projets /> },
 
-      // ── Écrans restant à porter ───────────────────────────────────────────
       { path: 'export', element: <Exports /> },
       // L'AngularJS y ouvrait un gabarit inexistant (`disabled_structure`) quand aucun établissement
       // n'était actif ; ici, chaque écran signale lui-même l'absence d'établissement.
@@ -74,7 +70,7 @@ export const familyRoutes: RouteObject[] = [
       { path: 'releve', element: <FamilyReleve /> },
       { path: 'bulletin', element: <FamilyBulletin /> },
       // Retiré du menu de l'AngularJS, encore joignable par lien.
-      { path: 'bilan/periodique', element: <NotMigrated /> },
+      { path: 'bilan/periodique', element: <FamilyBilanPeriodique /> },
       { path: '*', element: <Navigate to="/" replace /> },
     ],
   },
