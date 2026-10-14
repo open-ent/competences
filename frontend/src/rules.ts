@@ -6,6 +6,7 @@
  * ouvrir : les différences entre elles sont voulues, même quand elles surprennent.
  */
 
+import { dateLocale } from './locale';
 import type { Classe, Devoir, Matiere, Service, TypePeriode, UserDetails } from './types';
 
 /** Qui regarde, et avec quels pouvoirs. */
@@ -221,13 +222,20 @@ export function isNotDone(devoir: Pick<Devoir, 'percent'>): boolean {
 
 // ── Affichage ────────────────────────────────────────────────────────────────
 
-/** `getFormatedDate(date, 'DD/MM/YYYY')`, sans dépendre du fuseau pour une date seule. */
+/**
+ * `getFormatedDate(date, 'DD/MM/YYYY')`, dans la locale de la session, sans dépendre du
+ * fuseau pour une date seule : les composantes d'une date ISO sont réassemblées en date
+ * **locale** plutôt que parsées, pour qu'un « 2026-10-01 » ne recule pas d'un jour.
+ */
 export function formatDate(value: string | null | undefined): string {
   if (!value) return '';
   const day = /^(\d{4})-(\d{2})-(\d{2})/.exec(value);
-  if (day) return `${day[3]}/${day[2]}/${day[1]}`;
-  const date = new Date(value);
-  return Number.isNaN(date.getTime()) ? '' : date.toLocaleDateString('fr-FR');
+  const date = day
+    ? new Date(Number(day[1]), Number(day[2]) - 1, Number(day[3]))
+    : new Date(value);
+  return Number.isNaN(date.getTime())
+    ? ''
+    : date.toLocaleDateString(dateLocale(), { day: '2-digit', month: '2-digit', year: 'numeric' });
 }
 
 /** Libellé du genre de groupe, utilisé pour regrouper les classes dans les listes. */

@@ -9,6 +9,7 @@ import { usePeriodeLabel } from '../features/Filters';
 import { ImportNotes } from '../features/ImportNotes';
 import { PrintDevoir } from '../features/PrintDevoir';
 import { AppreciationInput, NoteInput } from '../features/SaisieInputs';
+import { dateLocale } from '../locale';
 import { formatDate, isChefEtabOrHeadTeacher, isHeadTeacher } from '../rules';
 import {
   annotationClearsCompetences,
@@ -570,7 +571,7 @@ const toggle = <T,>(set: Set<T>, value: T) => {
 };
 
 const formatStat = (value: number | undefined) =>
-  value === undefined || value === null ? '—' : value.toLocaleString('fr-FR', { maximumFractionDigits: 1 });
+  value === undefined || value === null ? '—' : value.toLocaleString(dateLocale(), { maximumFractionDigits: 1 });
 
 /**
  * Pastille de niveau (`cSkillNoteDevoir`). Clic : niveau suivant ; touches 0 à 4 : niveau direct.

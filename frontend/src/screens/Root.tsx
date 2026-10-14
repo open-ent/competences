@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next';
 import { NavLink, Outlet } from 'react-router-dom';
 
 import { UiSwitchBanner } from '../features/UiSwitchBanner';
+import { setLanguage } from '../locale';
 import { TEACHER_MENU } from '../rights';
 import { StructureProvider, useStructure } from '../structure';
 
@@ -14,7 +15,14 @@ import { StructureProvider, useStructure } from '../structure';
  * tous les écrans : chaque entrée garde le droit de workflow qui la gardait.
  */
 export function Root() {
-  const { init, currentApp } = useEdificeClient();
+  const { init, currentApp, currentLanguage } = useEdificeClient();
+
+  // La locale de formatage des dates et des moyennes suit la langue de la session (cf.
+  // locale.ts). Elle est posée pendant le rendu, et non dans un effet : les écrans sont
+  // montés sous ce composant et formateraient leurs premières dates en français avant que
+  // l'effet ne s'exécute.
+  setLanguage(currentLanguage);
+
   if (!init) return <LoadingScreen position={false} />;
 
   return (

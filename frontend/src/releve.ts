@@ -6,6 +6,7 @@
  * chaque saisie.
  */
 
+import { dateLocale } from './locale';
 import type { ReleveEleve, ReleveNoteRow, PeriodeClasse } from './types';
 
 /** « Non noté » : moyenne absente faute de note. */
@@ -15,11 +16,11 @@ export const MAX_APPRECIATION = 300;
 
 const NOTE = /^[0-9]+(\.[0-9]{1,2})?$/;
 
-/** Affichage d'une moyenne : virgule décimale, « NN » quand elle manque. */
+/** Affichage d'une moyenne : séparateur décimal de la locale, « NN » quand elle manque. */
 export function formatMoyenne(value: number | string | null | undefined): string {
   if (value === null || value === undefined || value === '' || value === NN) return NN;
   const n = typeof value === 'number' ? value : Number(String(value).replace(',', '.'));
-  return Number.isNaN(n) ? String(value) : n.toLocaleString('fr-FR', { maximumFractionDigits: 2 });
+  return Number.isNaN(n) ? String(value) : n.toLocaleString(dateLocale(), { maximumFractionDigits: 2 });
 }
 
 /**

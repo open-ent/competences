@@ -5,6 +5,7 @@ import { useTranslation } from 'react-i18next';
 
 import * as api from '../api';
 import { bulletinPeriodes } from '../bulletins';
+import { dateLocale } from '../locale';
 import { StructureSelect, usePeriodeLabel } from '../features/Filters';
 import {
   allErrorsIgnored,
@@ -41,7 +42,7 @@ function download(blob: Blob, filename: string) {
 
 const formatDate = (iso: string) => {
   const d = new Date(iso);
-  return Number.isNaN(d.getTime()) ? iso : d.toLocaleString('fr-FR', { dateStyle: 'short', timeStyle: 'short' });
+  return Number.isNaN(d.getTime()) ? iso : d.toLocaleString(dateLocale(), { dateStyle: 'short', timeStyle: 'short' });
 };
 
 /**
