@@ -3,6 +3,7 @@ import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
 import * as api from '../api';
+import { canExportCsv } from '../rules';
 import { recapEvalCsv, tableauMoyennesCsv } from '../releveExport';
 import { usePeriodeLabel } from './Filters';
 import { useStructure, useStructureData, useViewer } from '../structure';
@@ -32,6 +33,8 @@ export function ExportSuivi({ classe, periode, eleveId, onClose }: { classe: Cla
   const { structureId } = useStructure();
   const data = useStructureData();
   const viewer = useViewer()!;
+  // Le CSV n'est proposé qu'à la direction, au professeur principal et au personnel d'éducation
+  const csvAllowed = canExportCsv(viewer, classe);
   const [kind, setKind] = useState<Kind>(eleveId ? 'releveComp' : 'recapEval');
   const [text, setText] = useState(false);
   const [csv, setCsv] = useState(false);
@@ -51,10 +54,10 @@ export function ExportSuivi({ classe, periode, eleveId, onClose }: { classe: Cla
     try {
       const usePerso = await api.getUsePerso(viewer.userId);
       const fallbackName = `${kind}-${classe.name}.pdf`;
-      if (kind === 'recapEval' && csv) {
+      if (kind === 'recapEval' && csv && csvAllowed) {
         const data = await api.getRecapEvalData(structureId, classe.id, idPeriode);
         api.saveBlob(new Blob([recapEvalCsv(data, t)], { type: 'text/csv;charset=UTF-8' }), `positioning_${classe.name}.csv`);
-      } else if (kind === 'tabMoys' && csv) {
+      } else if (kind === 'tabMoys' && csv && csvAllowed) {
         const tableau = await api.getTableauMoyennes(structureId, classe, matieres.map((m) => m.id), idPeriode);
         const teachersOf = (matiereId: string) =>
           [...new Set(data.devoirs.filter((d) => d.id_groupe === classe.id && d.id_matiere === matiereId).map((d) => (d as { teacher?: string }).teacher).filter(Boolean))].join('  ');
@@ -132,7 +135,7 @@ export function ExportSuivi({ classe, periode, eleveId, onClose }: { classe: Cla
               ))}
             </fieldset>
           )}
-          {(kind === 'recapEval' || kind === 'tabMoys') && !eleveId && check('csv', t('competences.react.export.csv'), csv, setCsv)}
+          {(kind === 'recapEval' || kind === 'tabMoys') && !eleveId && csvAllowed && check('csv', t('competences.react.export.csv'), csv, setCsv)}
           {kind !== 'classeReleve' && !((kind === 'recapEval' || kind === 'tabMoys') && csv) && check('text', t('competences.react.export.text'), text, setText)}
           {kind === 'tabMoys' && csv && (
             <div className="d-flex flex-column gap-4">

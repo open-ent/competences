@@ -103,7 +103,7 @@ function DevoirView({ child, data }: { child: FamilyChild; data: ReturnType<type
           {devoir.apprec_visible && (
             <section className="card p-16">
               <h2 className="h5">{t('viescolaire.utils.appreciation')}</h2>
-              {appreciationQuery.isLoading ? <LoadingScreen position={false} /> : <p className="mb-0">{appreciationQuery.data || '—'}</p>}
+              {appreciationQuery.isLoading ? <LoadingScreen position={false} /> : appreciationQuery.isError ? <Alert type="danger">{t('competences.react.loading.error')}</Alert> : <p className="mb-0">{appreciationQuery.data || '—'}</p>}
             </section>
           )}
 

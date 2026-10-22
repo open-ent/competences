@@ -4,7 +4,7 @@ import { useId, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
 import * as api from '../api';
-import { modelPreferences, ReportModel } from '../bulletins';
+import { modelPreferences, renamedModelBody, ReportModel, reportModelTitleTaken } from '../bulletins';
 import type { PrintOptions } from '../bulletins';
 import { useStructure, useViewer } from '../structure';
 
@@ -30,13 +30,16 @@ export function ReportModels({
   const viewer = useViewer()!;
   const selectId = useId();
   const [title, setTitle] = useState('');
+  // Renommage du modèle choisi : `null` = fermé, sinon le titre en cours de saisie
+  const [renaming, setRenaming] = useState<string | null>(null);
   const [error, setError] = useState(false);
   const key = ['competences', structureId, 'report-models'];
   const modelsQuery = useQuery({ queryKey: key, queryFn: () => api.getReportModels(structureId) });
   const models = modelsQuery.data ?? [];
   const selected = models.find((m) => m._id === selectedId) ?? null;
   const own = selected?.userId === viewer.userId;
-  const titleTaken = models.some((m) => m.title.trim().toLowerCase() === title.trim().toLowerCase());
+  const titleTaken = reportModelTitleTaken(models, title);
+  const renameTaken = renaming !== null && reportModelTitleTaken(models, renaming, selected?._id);
 
   const run = async (write: () => Promise<void>) => {
     try {
@@ -58,7 +61,7 @@ export function ReportModels({
           <label htmlFor={selectId} className="form-label">
             {t('competences.report.model.title.select')}
           </label>
-          <select id={selectId} className="form-select" value={selectedId ?? ''} onChange={(e) => onSelect(models.find((m) => m._id === e.target.value) ?? null)}>
+          <select id={selectId} className="form-select" value={selectedId ?? ''} onChange={(e) => { setRenaming(null); onSelect(models.find((m) => m._id === e.target.value) ?? null); }}>
             <option value="">—</option>
             {models.map((m) => (
               <option key={m._id} value={m._id}>
@@ -68,7 +71,10 @@ export function ReportModels({
           </select>
         </div>
         {selected && own && (
-          <div className="col-12 col-md-6 d-flex gap-8">
+          <div className="col-12 col-md-6 d-flex gap-8 flex-wrap">
+            <Button type="button" size="sm" color="secondary" variant="outline" onClick={() => setRenaming(selected.title)} data-model-rename>
+              {t('competences.react.bulletins.model.rename')}
+            </Button>
             <Button
               type="button"
               size="sm"
@@ -95,6 +101,38 @@ export function ReportModels({
           </div>
         )}
       </div>
+      {selected && own && renaming !== null && (
+        <div className="row g-8 align-items-end" data-model-rename-form>
+          <div className="col-12 col-md-6">
+            <label htmlFor="report-model-rename" className="form-label">
+              {t('competences.react.bulletins.model.rename')}
+            </label>
+            <input id="report-model-rename" className="form-control" value={renaming} onChange={(e) => setRenaming(e.target.value)} />
+          </div>
+          <div className="col-12 col-md-6 d-flex gap-8">
+            <Button
+              type="button"
+              size="sm"
+              color="primary"
+              variant="outline"
+              disabled={!renaming.trim() || renameTaken}
+              onClick={() =>
+                run(async () => {
+                  await api.updateReportModel(selected._id, renamedModelBody(selected, renaming));
+                  setRenaming(null);
+                })
+              }
+              data-model-rename-save
+            >
+              {t('viescolaire.utils.save')}
+            </Button>
+            <Button type="button" size="sm" color="tertiary" variant="ghost" onClick={() => setRenaming(null)}>
+              {t('competences.react.cancel')}
+            </Button>
+          </div>
+          {renameTaken && <div className="small text-danger">{t('competences.reportModel.info.problem.title')}</div>}
+        </div>
+      )}
       <div className="row g-8 align-items-end">
         <div className="col-12 col-md-6">
           <label htmlFor="report-model-title" className="form-label">

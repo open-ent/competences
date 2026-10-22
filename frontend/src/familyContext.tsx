@@ -12,6 +12,8 @@ interface FamilyContextValue {
   child: FamilyChild | undefined;
   setChildId: (id: string) => void;
   isLoading: boolean;
+  /** La liste des enfants du parent n'a pas pu être chargée (à ne pas confondre avec « aucun enfant »). */
+  isError: boolean;
 }
 
 const FamilyContext = createContext<FamilyContextValue | null>(null);
@@ -40,8 +42,8 @@ export function FamilyProvider({ children: content }: { children: ReactNode }) {
   const child = children.find((c) => c.id === chosen) ?? children[0];
 
   const value = useMemo(
-    () => ({ isParent, children, child, setChildId, isLoading: isParent && enfantsQuery.isLoading }),
-    [isParent, children, child, enfantsQuery.isLoading],
+    () => ({ isParent, children, child, setChildId, isLoading: isParent && enfantsQuery.isLoading, isError: isParent && enfantsQuery.isError }),
+    [isParent, children, child, enfantsQuery.isLoading, enfantsQuery.isError],
   );
   return <FamilyContext.Provider value={value}>{content}</FamilyContext.Provider>;
 }
@@ -90,7 +92,9 @@ export function useChildData(child: FamilyChild) {
       idCycle,
       levels: levelsForCycle(maitrise.data ?? [], idCycle),
       isLoading: [devoirs, matieres, teachers, periodes, cycles, maitrise].some((q) => q.isLoading),
-      isError: devoirs.isError,
+      // Une panne sur n'importe quel référentiel (matières, enseignants, périodes, cycles, niveaux) est signalée : sans
+      // cela l'écran s'affichait avec des listes vides, des matières par identifiant et des niveaux absents.
+      isError: [devoirs, matieres, teachers, periodes, cycles, maitrise].some((q) => q.isError),
     };
-  }, [devoirs.data, devoirs.isError, matieres.data, teachers.data, periodes.data, cycles.data, maitrise.data, devoirs.isLoading, matieres.isLoading, teachers.isLoading, periodes.isLoading, cycles.isLoading, maitrise.isLoading]);
+  }, [devoirs.data, devoirs.isError, matieres.isError, teachers.isError, periodes.isError, cycles.isError, maitrise.isError, matieres.data, teachers.data, periodes.data, cycles.data, maitrise.data, devoirs.isLoading, matieres.isLoading, teachers.isLoading, periodes.isLoading, cycles.isLoading, maitrise.isLoading]);
 }

@@ -1,23 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import {
-  attachServices,
-  canOpenDevoir,
-  classesWithDevoirs,
-  EMPTY_SEARCH,
-  filterDevoirs,
-  formatDate,
-  isChefEtabOrHeadTeacher,
-  isNotDone,
-  isSubstitutionActive,
-  isValidClasse,
-  isValidDevoir,
-  matieresForClasse,
-  periodesWithDevoirs,
-  sortDevoirs,
-  userHasService,
-  Viewer,
-} from './rules';
+import { attachServices, canOpenDevoir, classesWithDevoirs, EMPTY_SEARCH, filterDevoirs, formatDate, isChefEtabOrHeadTeacher, isNotDone, isSubstitutionActive, isValidClasse, isValidDevoir, matieresForClasse, periodesWithDevoirs, sortDevoirs, userHasService, Viewer, canExportCsv } from './rules';
 import type { Classe, Devoir, Matiere, Service, TypePeriode } from './types';
 
 const ME = 'me';
@@ -233,5 +216,18 @@ describe('formatDate', () => {
     expect(formatDate('2026-10-01')).toBe('01/10/2026');
     expect(formatDate('2026-10-01T23:30:00.000')).toBe('01/10/2026');
     expect(formatDate(null)).toBe('');
+  });
+});
+
+describe('canExportCsv', () => {
+  const classe = { externalId: 'ext-c1' } as Parameters<typeof canExportCsv>[1];
+  it('direction, professeur principal de la classe, personnel d\'éducation : oui', () => {
+    expect(canExportCsv(viewer({ isAdmin: true }), classe)).toBe(true);
+    expect(canExportCsv(viewer({ details: { headTeacher: ['ext-c1'] } }), classe)).toBe(true);
+    expect(canExportCsv(viewer({ isPersEducNat: true }), classe)).toBe(true);
+  });
+  it('enseignant ordinaire ou professeur principal d\'une autre classe : non', () => {
+    expect(canExportCsv(viewer({}), classe)).toBe(false);
+    expect(canExportCsv(viewer({ details: { headTeacher: ['ext-autre'] } }), classe)).toBe(false);
   });
 });

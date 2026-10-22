@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { acquisRow, AcquisRaw, isEmptyRow, moyenneGenerale } from './conseil';
+import { acquisRow, AcquisRaw, isEmptyRow, moyenneGenerale, coefficientConflicts } from './conseil';
 
 const table = [
   { valmin: 3.5, valmax: 4, ordre: 4, libelle: 'TB' },
@@ -148,5 +148,19 @@ describe('compétences numériques', () => {
     expect(hasDigitalSkills({ type_groupe: 0, id_cycle: 2 })).toBe(true);
     expect(hasDigitalSkills({ type_groupe: 0, id_cycle: 1 })).toBe(false);
     expect(hasDigitalSkills({ type_groupe: 1, id_cycle: 2 })).toBe(false);
+  });
+});
+
+describe('coefficientConflicts', () => {
+  const base = { id_matiere: 'm', idClasse: 'c' };
+  it('signale une matière à deux coefficients, avec ses enseignants', () => {
+    const conflicts = coefficientConflicts([
+      { ...base, libelleMatiere: 'Maths', coefficient: { '2': { libelleMatiere: 'Maths', teachers: [{ firstName: 'Alice', name: 'Martin' }] }, '3': { libelleMatiere: 'Maths', teachers: [{ firstName: 'Bob', name: 'Durand' }] } } },
+    ]);
+    expect(conflicts).toHaveLength(1);
+    expect(conflicts[0].entries.map((e) => [e.coefficient, e.teachers])).toEqual([['2', ['A.Martin']], ['3', ['B.Durand']]]);
+  });
+  it('un seul coefficient ou aucun : pas de conflit', () => {
+    expect(coefficientConflicts([{ ...base, libelleMatiere: 'Histoire', coefficient: { '1': { libelleMatiere: 'Histoire' } } }, { ...base, libelleMatiere: 'Arts' }])).toEqual([]);
   });
 });

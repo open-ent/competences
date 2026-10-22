@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { bulletinBody, bulletinPeriodes, orientationDefaultKey, otherTeacherName } from './bulletins';
+import { bulletinBody, bulletinPeriodes, orientationDefaultKey, otherTeacherName, bulletinConflicts, reportModelTitleTaken, renamedModelBody } from './bulletins';
 import type { PeriodeClasse } from './types';
 
 const p = (id_type: number, patch: Partial<PeriodeClasse> = {}): PeriodeClasse => ({
@@ -90,5 +90,41 @@ describe('modèles d’options', () => {
     const p = modelPreferences({ coefficient: true }, { mentionClass: 'Mention', orientationOpinion: 'Avis' });
     expect(p.preferencesCheckbox).toMatchObject({ coefficient: true, studentRank: false });
     expect(p.preferencesText).toMatchObject({ mentionClass: 'Mention', orientationOpinion: 'Avis' });
+  });
+});
+
+describe('bulletinConflicts', () => {
+  it('dédoublonne par élève, ignore ceux sans conflit, détaille matières et enseignants', () => {
+    const out = bulletinConflicts([
+      { idEleve: 'e1', lastName: 'Durand', firstName: 'Léa', classeOf: '6e', classeNameToShow: 'A', has_conflict_coefficient: true, conflict_coefficient: [{ libelleMatiere: 'Maths', coefficient: 2, teachers: [{ firstName: 'Alice', name: 'Martin' }] }, { libelleMatiere: 'Maths', coefficient: 3, teachers: [{ firstName: 'Bob', name: 'Roux' }] }] },
+      { idEleve: 'e1', lastName: 'Durand', firstName: 'Léa', has_conflict_coefficient: true, conflict_coefficient: [] },
+      { idEleve: 'e2', lastName: 'Petit', firstName: 'Tom', has_conflict_coefficient: false },
+    ]);
+    expect(out).toHaveLength(1);
+    expect(out[0]).toMatchObject({ idEleve: 'e1', nom: 'Durand Léa', classe: '6e A' });
+    expect(out[0].subjects.map((s) => [s.libelle, s.coefficient, s.teachers])).toEqual([['Maths', '2', ['A.Martin']], ['Maths', '3', ['B.Roux']]]);
+  });
+});
+
+describe('reportModelTitleTaken', () => {
+  const models = [{ _id: 'a', title: 'Collège' }, { _id: 'b', title: 'Lycée ' }];
+  it('détecte un titre déjà pris, sans casse ni espaces de bord', () => {
+    expect(reportModelTitleTaken(models, ' collège')).toBe(true);
+    expect(reportModelTitleTaken(models, 'Lycée')).toBe(true);
+    expect(reportModelTitleTaken(models, 'Neutre')).toBe(false);
+  });
+  it('le modèle renommé peut garder son propre titre', () => {
+    expect(reportModelTitleTaken(models, 'Collège', 'a')).toBe(false);
+    expect(reportModelTitleTaken(models, 'Lycée', 'a')).toBe(true);
+  });
+});
+
+describe('renamedModelBody', () => {
+  it('garde les options du modèle avec le nouveau titre', () => {
+    const body = renamedModelBody({ _id: 'a', userId: 'u', structureId: 's', title: 'Ancien', preferencesCheckbox: ['moyenneClasse'], preferencesText: { mentionClass: 'Bien' } }, '  Nouveau ');
+    expect(body.title).toBe('Nouveau');
+    expect(body.preferencesText).toEqual({ mentionClass: 'Bien' });
+    expect(body.preferencesCheckbox.moyenneClasse).toBe(true);
+    expect(Object.values(body.preferencesCheckbox).filter(Boolean)).toHaveLength(1);
   });
 });

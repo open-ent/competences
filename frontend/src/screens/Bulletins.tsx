@@ -39,6 +39,9 @@ export function Bulletins() {
   const [mention, setMention] = useState('');
   const [orientation, setOrientation] = useState('');
   const [busy, setBusy] = useState(false);
+  // Élèves en conflit de coefficients (détail affiché dans une fenêtre, comme la lightbox de l'AngularJS)
+  const [conflictDetails, setConflictDetails] = useState<api.BulletinConflict[]>([]);
+  const [showConflicts, setShowConflicts] = useState(false);
   const [message, setMessage] = useState<{ type: 'success' | 'danger' | 'warning'; text: string } | null>(null);
   const [confirmDuplicate, setConfirmDuplicate] = useState(false);
 
@@ -117,7 +120,7 @@ export function Bulletins() {
     setConfirmDuplicate(false);
     setBusy(true);
     setMessage(null);
-    const conflicts: string[] = [];
+    const conflicts: api.BulletinConflict[] = [];
     const done: string[] = [];
     try {
       const other = data.enseignants.find((e) => e.id === print.otherTeacherId);
@@ -168,7 +171,8 @@ export function Bulletins() {
         }, 100);
         done.push(classe.name);
       }
-      if (conflicts.length > 0) setMessage({ type: 'warning', text: `${t('competences.react.bulletins.conflict')} ${conflicts.join(', ')}` });
+      setConflictDetails(conflicts);
+      if (conflicts.length > 0) setMessage({ type: 'warning', text: `${t('competences.react.bulletins.conflict')} ${conflicts.map((c) => c.nom).join(', ')}` });
       else setMessage({ type: 'success', text: `${done.join(', ')} : ${t('evaluations.export.bulletin.success')}` });
     } catch {
       setMessage({ type: 'danger', text: t('competences.react.bulletins.error') });
@@ -220,6 +224,11 @@ export function Bulletins() {
       {message && (
         <Alert type={message.type} isDismissible onClose={() => setMessage(null)}>
           {message.text}
+          {message.type === 'warning' && conflictDetails.length > 0 && (
+            <Button color="tertiary" variant="outline" className="ms-12" onClick={() => setShowConflicts(true)} data-conflict-details>
+              {t('show.details')}
+            </Button>
+          )}
         </Alert>
       )}
 
@@ -479,6 +488,47 @@ export function Bulletins() {
           </Button>
         </div>
       </section>
+
+      {showConflicts && (
+        <Modal id="bulletin-conflicts" isOpen onModalClose={() => setShowConflicts(false)} size="md">
+          <Modal.Header onModalClose={() => setShowConflicts(false)}>{t('evaluations.coefficient.conflict.list')}</Modal.Header>
+          <Modal.Body>
+            <p>{t('evaluations.coefficient.conflict.info')}</p>
+            {conflictDetails.map((c) => (
+              <section key={c.idEleve} className="mb-16" data-conflict-student>
+                <h3 className="h6 mb-0">{c.nom}</h3>
+                <p className="text-muted">{c.classe}</p>
+                <table className="table">
+                  <thead>
+                    <tr>
+                      <th>{t('viescolaire.utils.subject')}</th>
+                      <th className="text-center">{t('evaluations.test.coefficient')}</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {c.subjects.map((sub, i) => (
+                      <tr key={`${sub.libelle}-${i}`}>
+                        <td>
+                          <strong>{sub.libelle}</strong>
+                          {sub.teachers.map((name) => (
+                            <div key={name}>{name}</div>
+                          ))}
+                        </td>
+                        <td className="text-center">{sub.coefficient}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </section>
+            ))}
+          </Modal.Body>
+          <Modal.Footer>
+            <Button color="primary" variant="filled" onClick={() => setShowConflicts(false)}>
+              {t('competences.react.close')}
+            </Button>
+          </Modal.Footer>
+        </Modal>
+      )}
 
       {confirmDuplicate && (
         <Modal id="bulletin-duplicate" isOpen onModalClose={() => setConfirmDuplicate(false)} size="sm">

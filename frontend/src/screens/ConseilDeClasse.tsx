@@ -4,7 +4,7 @@ import { useEffect, useId, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
 import * as api from '../api';
-import { acquisRow, conseilRights, hasDigitalSkills, isEmptyRow, moyenneGenerale } from '../conseil';
+import { acquisRow, coefficientConflicts, conseilRights, hasDigitalSkills, isEmptyRow, moyenneGenerale } from '../conseil';
 import { BilanFinCycle } from '../features/BilanFinCycle';
 import { AvisPanel, DigitalSkillsTab, Graphiques, ProjetsEleve, Synthese, VieScolaire } from '../features/ConseilTabs';
 import { ClasseSelect, StructureSelect, usePeriodeLabel } from '../features/Filters';
@@ -14,6 +14,7 @@ import { isChefEtabOrHeadTeacher, sortClasses, userHasService } from '../rules';
 import { levelsForCycle, sortEleves } from '../saisie';
 import { useStructure, useStructureData, useViewer } from '../structure';
 import type { PeriodeClasse } from '../types';
+import { CoefficientConflicts } from '../features/CoefficientConflicts';
 
 /**
  * Conseil de classe (`display_bilan_periodique.html`), onglet « Suivi des acquis » : pour un élève
@@ -253,6 +254,9 @@ function SuiviAcquis({
     .filter(({ raw, row }) => !isEmptyRow(row, raw, periode.id_type))
     .sort((a, b) => (a.raw.rank ?? 0) - (b.raw.rank ?? 0));
 
+  // Matières à plusieurs coefficients : alerte, car les moyennes affichées ne sont alors pas fiables
+  const conflicts = coefficientConflicts(rows.map((r) => r.raw));
+
   const run = async (write: () => Promise<unknown>) => {
     try {
       setError(false);
@@ -270,6 +274,7 @@ function SuiviAcquis({
   return (
     <section className="card p-16 d-flex flex-column gap-12">
       <h3 className="h5 mb-0">{t('evaluation.bilan.periodique.suivi.acquis')}</h3>
+      <CoefficientConflicts conflicts={conflicts} />
       {error && <Alert type="danger">{t('competences.react.saisie.save.error')}</Alert>}
       <div className="table-responsive">
         <table className="table align-middle mb-0">

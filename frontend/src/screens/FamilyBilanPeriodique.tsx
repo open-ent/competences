@@ -42,6 +42,7 @@ function BilanPeriodiqueView({ child, data }: { child: FamilyChild; data: Return
     queryFn: () => api.getEvenements(child.idStructure, child.idClasse, child.id),
   });
   const loading = [acquisQuery, conversionQuery, avisQuery, evenementsQuery].some((q) => q.isLoading && q.fetchStatus !== 'idle');
+  const failed = [acquisQuery, conversionQuery, avisQuery, evenementsQuery].some((q) => q.isError);
 
   const rows =
     periode === null
@@ -74,6 +75,8 @@ function BilanPeriodiqueView({ child, data }: { child: FamilyChild; data: Return
       </div>
       {loading ? (
         <LoadingScreen position={false} />
+      ) : failed ? (
+        <Alert type="danger">{t('competences.react.loading.error')}</Alert>
       ) : (
         <>
           <section className="card p-16">

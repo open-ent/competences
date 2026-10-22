@@ -12,8 +12,10 @@ import { LevelBubble } from './SuiviTree';
 /** Rend l'écran pour l'enfant suivi, une fois ses référentiels chargés. */
 export function WithChild({ render }: { render: (child: FamilyChild, data: ReturnType<typeof useChildData>) => ReactNode }) {
   const { t } = useTranslation(['competences', 'viescolaire', 'common']);
-  const { child, isLoading } = useFamily();
+  const { child, isLoading, isError } = useFamily();
   if (isLoading) return <LoadingScreen position={false} />;
+  // Une panne de la liste des enfants n'est pas « aucun enfant »
+  if (isError) return <Alert type="danger">{t('competences.react.loading.error')}</Alert>;
   if (!child) return <Alert type="info">{t('competences.react.famille.no.child')}</Alert>;
   return <ChildData key={child.id} child={child} render={render} />;
 }

@@ -36,6 +36,8 @@ export function ReleveView({ child, data }: { child: FamilyChild; data: ReturnTy
   const matieresQuery = useQuery({ queryKey: ['competences', child.idStructure, 'matieres-eleve'], queryFn: () => api.getStudentMatieres(child.idStructure) });
 
   if ([finalesQuery, subTopicsQuery, servicesQuery, matieresQuery].some((q) => q.isLoading)) return <LoadingScreen position={false} />;
+  // Une panne n'est pas « aucun relevé » : moyennes finales, sous-matières, services et matières sont nécessaires au calcul
+  if ([finalesQuery, subTopicsQuery, servicesQuery, matieresQuery].some((q) => q.isError)) return <Alert type="danger">{t('competences.react.loading.error')}</Alert>;
 
   const devoirs = data.devoirs.filter((d) => periode === null || d.id_periode === periode);
   const services = servicesQuery.data ?? [];

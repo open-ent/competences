@@ -862,6 +862,8 @@
   "competences.react.saisie.no.student": "Aucun élève n'est évalué sur cette période.",
   "competences.react.saisie.no.levels": "Aucune échelle de maîtrise n'est paramétrée pour cet établissement : les compétences ne peuvent pas être évaluées.",
   "competences.react.saisie.finished": "Avancement porté à 100 %.",
+  "competences.react.close": "Fermer",
+  "competences.react.bulletins.model.rename": "Renommer",
   "competences.react.cancel": "Annuler",
   "competences.react.form.tab.informations": "Informations",
   "competences.react.form.required": "* champ obligatoire · ** sans note, au moins une compétence est requise",

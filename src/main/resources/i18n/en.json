@@ -862,6 +862,8 @@
   "competences.react.saisie.no.student": "No student is assessed over this period.",
   "competences.react.saisie.no.levels": "No mastery scale is set up for this school: skills cannot be assessed.",
   "competences.react.saisie.finished": "Progress set to 100%.",
+  "competences.react.close": "Close",
+  "competences.react.bulletins.model.rename": "Rename",
   "competences.react.cancel": "Cancel",
   "competences.react.form.tab.informations": "Information",
   "competences.react.form.required": "* required field · ** without a mark, at least one skill is required",

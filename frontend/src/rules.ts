@@ -36,6 +36,14 @@ export function isChefEtabOrHeadTeacher(viewer: Viewer, classe?: Classe | null):
   return viewer.isAdmin || isHeadTeacher(classe, viewer);
 }
 
+/**
+ * Export CSV du suivi d'une classe : direction, professeur principal de la classe ou personnel d'éducation (CPE…), comme
+ * `isChefEtabOrHeadTeacher(classe) || isPersEducNat()` dans le gabarit AngularJS. Un enseignant ordinaire n'y a pas droit.
+ */
+export function canExportCsv(viewer: Viewer, classe?: Classe | null): boolean {
+  return isChefEtabOrHeadTeacher(viewer, classe) || viewer.isPersEducNat;
+}
+
 // ── Services ─────────────────────────────────────────────────────────────────
 
 /** Bornes INCLUSES, à la journée — `moment().isBetween(start, end, 'days', '[]')`. */

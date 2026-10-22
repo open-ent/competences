@@ -1,4 +1,5 @@
 // Client REST du module Compétences — session ENT, même origine.
+import { bulletinConflicts } from './bulletins';
 import type { NoteWrite } from './saisie';
 import type { AcquisRaw, AvisSyntheses, DigitalSkill, DigitalSkillsEleve, Evenement } from './conseil';
 import { parseLsuErrors } from './lsu';
@@ -525,7 +526,15 @@ export async function bulletinsExist(students: Array<{ id: string; idClasse: str
  * Génère les bulletins d'une classe et renvoie le PDF. Un conflit de coefficients revient en 400
  * avec la liste des élèves concernés, dans le corps — que l'on rend lisible.
  */
-export async function generateBulletins(body: Record<string, unknown>): Promise<{ blob: Blob; filename: string } | { conflict: string[] }> {
+/** Élève en conflit de coefficients à la génération des bulletins, avec les matières concernées (une entrée par coefficient). */
+export interface BulletinConflict {
+  idEleve: string;
+  nom: string;
+  classe: string;
+  subjects: Array<{ libelle: string; coefficient: string; teachers: string[] }>;
+}
+
+export async function generateBulletins(body: Record<string, unknown>): Promise<{ blob: Blob; filename: string } | { conflict: BulletinConflict[] }> {
   const res = await fetch('/competences/export/bulletins', {
     credentials: 'include',
     method: 'POST',
@@ -534,8 +543,19 @@ export async function generateBulletins(body: Record<string, unknown>): Promise<
   });
   if (!res.ok) {
     try {
-      const data = (await res.json()) as { eleves?: Array<{ lastName?: string; firstName?: string; name?: string }> };
-      if (data.eleves) return { conflict: data.eleves.map((e) => `${e.lastName ?? e.name ?? ''} ${e.firstName ?? ''}`.trim()) };
+      const data = (await res.json()) as {
+        eleves?: Array<{
+          idEleve?: string;
+          lastName?: string;
+          firstName?: string;
+          name?: string;
+          classeOf?: string;
+          classeNameToShow?: string;
+          has_conflict_coefficient?: boolean;
+          conflict_coefficient?: Array<{ libelleMatiere?: string; coefficient?: number | string; teachers?: Array<{ firstName?: string; name?: string }> }>;
+        }>;
+      };
+      if (data.eleves) return { conflict: bulletinConflicts(data.eleves) };
     } catch {
       /* corps illisible : erreur générique */
     }

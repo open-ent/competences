@@ -171,3 +171,64 @@ export function modelPreferences(print: PrintOptions, texts: { mentionClass: str
     preferencesText: Object.fromEntries(MODEL_TEXTS.map((k) => [k, k === 'mentionClass' ? texts.mentionClass : k === 'orientationOpinion' ? texts.orientationOpinion : print[k]])),
   };
 }
+
+/** Élève tel que le serveur le renvoie dans la réponse 400 d'un conflit de coefficients. */
+interface ConflictStudentRaw {
+  idEleve?: string;
+  lastName?: string;
+  firstName?: string;
+  name?: string;
+  classeOf?: string;
+  classeNameToShow?: string;
+  has_conflict_coefficient?: boolean;
+  conflict_coefficient?: Array<{ libelleMatiere?: string; coefficient?: number | string; teachers?: Array<{ firstName?: string; name?: string }> }>;
+}
+
+export interface BulletinConflictLike {
+  idEleve: string;
+  nom: string;
+  classe: string;
+  subjects: Array<{ libelle: string; coefficient: string; teachers: string[] }>;
+}
+
+/**
+ * Élèves en conflit de coefficients, dédoublonnés par identifiant (le serveur renvoie un élève par matière en conflit),
+ * avec les matières, coefficients et enseignants à signaler à l'administrateur. Un élève sans conflit est ignoré.
+ */
+export function bulletinConflicts(eleves: ConflictStudentRaw[]): BulletinConflictLike[] {
+  const seen = new Map<string, BulletinConflictLike>();
+  for (const e of eleves) {
+    if (!e.has_conflict_coefficient) continue;
+    const id = e.idEleve ?? `${e.lastName ?? e.name ?? ''}-${e.firstName ?? ''}`;
+    if (seen.has(id)) continue;
+    seen.set(id, {
+      idEleve: id,
+      nom: `${e.lastName ?? e.name ?? ''} ${e.firstName ?? ''}`.trim(),
+      classe: `${e.classeOf ?? ''} ${e.classeNameToShow ?? ''}`.trim(),
+      subjects: (e.conflict_coefficient ?? []).map((s) => ({
+        libelle: s.libelleMatiere ?? '',
+        coefficient: String(s.coefficient ?? ''),
+        teachers: (s.teachers ?? []).map((t) => `${(t.firstName ?? '').charAt(0)}${t.firstName ? '.' : ''}${t.name ?? ''}`),
+      })),
+    });
+  }
+  return [...seen.values()];
+}
+
+/** Un autre modèle porte-t-il déjà ce titre (sans tenir compte de la casse ni des espaces de bord) ? `exceptId` : le modèle renommé. */
+export function reportModelTitleTaken(models: Array<{ _id: string; title: string }>, title: string, exceptId?: string): boolean {
+  const wanted = title.trim().toLowerCase();
+  return models.some((m) => m._id !== exceptId && m.title.trim().toLowerCase() === wanted);
+}
+
+/**
+ * Corps du renommage d'un modèle : le nouveau titre avec ses options actuelles (le serveur remplace les préférences
+ * reçues, un corps réduit au titre les effacerait). Les cases sont reconstruites depuis la liste des options cochées.
+ */
+export function renamedModelBody(model: ReportModel, title: string) {
+  return {
+    title: title.trim(),
+    preferencesCheckbox: Object.fromEntries(MODEL_CHECKBOXES.map((k) => [k, model.preferencesCheckbox.includes(k)])),
+    preferencesText: model.preferencesText,
+  };
+}

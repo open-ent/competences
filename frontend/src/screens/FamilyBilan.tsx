@@ -149,7 +149,7 @@ function BilanView({ child, data }: { child: FamilyChild; data: ReturnType<typeo
       <section className="card p-16 d-flex flex-column gap-12">
         {loading ? (
           <LoadingScreen position={false} />
-        ) : domainesQuery.isError || notesQuery.isError ? (
+        ) : [domainesQuery, notesQuery, conversionQuery].some((q) => q.isError) ? (
           <Alert type="danger">{t('competences.react.loading.error')}</Alert>
         ) : (
           <>

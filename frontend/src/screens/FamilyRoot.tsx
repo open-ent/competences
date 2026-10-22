@@ -5,6 +5,7 @@ import { NavLink, Outlet } from 'react-router-dom';
 import * as api from '../api';
 import { UiSwitchBanner } from '../features/UiSwitchBanner';
 import { FamilyProvider, useFamily } from '../familyContext';
+import { setLanguage } from '../locale';
 
 const FAMILY_MENU = [
   { path: '/devoirs/list', label: 'evaluations.test.list' },
@@ -18,7 +19,9 @@ const FAMILY_MENU = [
  * parent, menu à gauche, écran à droite. Les chemins sont ceux de l'AngularJS (`parents.ts`).
  */
 export function FamilyRoot() {
-  const { init, currentApp } = useEdificeClient();
+  const { init, currentApp, currentLanguage } = useEdificeClient();
+  // Locale des dates et des moyennes = langue de la session (comme le gabarit enseignant `Root`) ; posée pendant le rendu
+  setLanguage(currentLanguage);
   if (!init) return <LoadingScreen position={false} />;
   return (
     <FamilyProvider>

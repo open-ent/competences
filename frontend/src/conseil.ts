@@ -20,6 +20,8 @@ export interface AcquisRaw {
   positionnements_auto?: Array<{ id_periode: number | null; moyenne: number | null }>;
   positionnementsFinaux?: Array<{ id_periode: number | null; positionnementFinal: number }>;
   elementsProgrammeByClasse?: Array<{ id_classe: string; texte: string }>;
+  /** Coefficients de la matière, un par valeur : plusieurs clés = conflit (services paramétrés avec des coefficients différents). */
+  coefficient?: Record<string, { libelleMatiere?: string; teachers?: Array<{ firstName?: string; name?: string }> }>;
 }
 
 export interface AcquisRow {
@@ -223,3 +225,29 @@ export function digitalDomaines(all: DigitalSkill[], evaluated: DigitalSkillsEle
 
 /** L'onglet n'existe que pour une CLASSE de cycle 3 (`isClassAndCycle3`). */
 export const hasDigitalSkills = (classe: { type_groupe: number; id_cycle?: number | null }) => classe.type_groupe === 0 && classe.id_cycle === 2;
+
+/** Matière dont les services portent plusieurs coefficients : les moyennes calculées ne sont alors pas fiables. */
+export interface CoefficientConflict {
+  libelle: string;
+  entries: Array<{ coefficient: string; libelle: string; teachers: string[] }>;
+}
+
+/** Initiale du prénom et nom d'un enseignant (« M. Dupont »), comme la lightbox de l'AngularJS. */
+const teacherLabel = (t: { firstName?: string; name?: string }): string => `${(t.firstName ?? '').charAt(0)}${t.firstName ? '.' : ''}${t.name ?? ''}`;
+
+/**
+ * Matières en conflit de coefficients : celles dont l'objet `coefficient` a plus d'une clé (`checkCoefficientConflict`).
+ * Ex. une matière à la fois au coefficient 2 (enseignant A) et 3 (enseignant B) est signalée avec ses deux entrées.
+ */
+export function coefficientConflicts(raws: AcquisRaw[]): CoefficientConflict[] {
+  return raws
+    .filter((raw) => Object.keys(raw.coefficient ?? {}).length > 1)
+    .map((raw) => ({
+      libelle: raw.libelleMatiere,
+      entries: Object.entries(raw.coefficient ?? {}).map(([coefficient, v]) => ({
+        coefficient,
+        libelle: v.libelleMatiere ?? raw.libelleMatiere,
+        teachers: (v.teachers ?? []).map(teacherLabel),
+      })),
+    }));
+}
