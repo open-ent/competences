@@ -6,12 +6,14 @@ import { Link } from 'react-router-dom';
 
 import * as api from '../api';
 import type { DomaineSuivi } from '../api';
+import { AppreciationsTab, MoyennesTab, PositionnementTab } from '../features/ClasseTabs';
 import { ExportSuivi } from '../features/ExportSuivi';
 import { ClasseSelect, StructureSelect, usePeriodeLabel } from '../features/Filters';
 import { isChefEtabOrHeadTeacher, isValidClasse, sortClasses } from '../rules';
 import { isEvaluable, Level, levelsForCycle, sortEleves, UNEVALUATED_COLOR } from '../saisie';
 import { useStructure, useStructureData, useViewer } from '../structure';
-import { ClasseEvaluation, classeLevels, classeShown, Conversion, distribution, myTeachers, TeacherSubject } from '../suivi';
+import { ClasseEvaluation, classeLevels, classeShown, Conversion, distribution, enseignementBlocs, myTeachers, TeacherSubject } from '../suivi';
+import { VueToggle } from '../features/SuiviTree';
 import type { EleveDevoir } from '../types';
 
 /**
@@ -19,8 +21,9 @@ import type { EleveDevoir } from '../types';
  * la répartition des élèves par niveau ; un clic donne le niveau de chaque élève et mène à son
  * suivi.
  *
- * Pas encore portés : vue par enseignement, exports (récapitulatifs, relevés, tableaux de
- * moyennes en PDF ou CSV).
+ * Quatre onglets comme l'AngularJS : suivi des items (par domaine ou par enseignement), positionnements (PDF du
+ * récapitulatif), moyennes et appréciations des professeurs ; flèches pour passer à la classe voisine ; exports en PDF
+ * ou CSV.
  */
 export function SuiviClasse() {
   const { t } = useTranslation(['competences', 'viescolaire', 'common']);
@@ -32,6 +35,7 @@ export function SuiviClasse() {
   const [exporting, setExporting] = useState(false);
   const [classeId, setClasseId] = useState<string | null>(null);
   const [periodeKey, setPeriodeKey] = useState('');
+  const [tab, setTab] = useState<ClasseTab>('suivi');
 
   const classes = useMemo(
     () => (viewer ? sortClasses(data.classes.filter((c) => isValidClasse(c.id, undefined, data.classes, viewer))) : []),
@@ -56,6 +60,16 @@ export function SuiviClasse() {
   if (data.isLoading || !viewer) return <LoadingScreen position={false} />;
 
   const periode = periodes.find((p) => String(p.id_type) === periodeKey) ?? null;
+  // Les appréciations n'existent que pour une période : sur l'année, on revient au suivi des items.
+  const activeTab: ClasseTab = tab === 'appreciations' && periode === null ? 'suivi' : tab;
+  const classeIndex = classes.findIndex((c) => c.id === classeId);
+  const goClasse = (delta: number) => {
+    const next = classes[classeIndex + delta];
+    if (next) {
+      setClasseId(next.id);
+      setPeriodeKey('');
+    }
+  };
 
   return (
     <div className="d-flex flex-column gap-16">
@@ -97,18 +111,60 @@ export function SuiviClasse() {
         <Alert type="info">{t('evaluation.suivi.no.cycle')}</Alert>
       ) : (
         <>
-          <div className="d-flex justify-content-end">
+          <div className="d-flex align-items-center justify-content-between gap-12">
+            <Button type="button" color="tertiary" variant="ghost" disabled={classeIndex <= 0} onClick={() => goClasse(-1)} data-classe-prev>
+              ← {classeIndex > 0 ? classes[classeIndex - 1].name : ''}
+            </Button>
+            <h2 className="h4 mb-0">{classe.name}</h2>
+            <Button type="button" color="tertiary" variant="ghost" disabled={classeIndex < 0 || classeIndex >= classes.length - 1} onClick={() => goClasse(1)} data-classe-next>
+              {classeIndex >= 0 && classeIndex < classes.length - 1 ? classes[classeIndex + 1].name : ''} →
+            </Button>
+          </div>
+          <div className="d-flex flex-wrap gap-8 align-items-center justify-content-between">
+            <div className="d-flex gap-8" role="tablist" aria-label={t('evaluations.suivi.classe.title')}>
+              {CLASSE_TABS.filter((x) => x.id !== 'appreciations' || periode !== null).map((x) => (
+                <button
+                  key={x.id}
+                  type="button"
+                  role="tab"
+                  aria-selected={activeTab === x.id}
+                  className={`btn ${activeTab === x.id ? 'btn-primary' : 'btn-outline-primary'}`}
+                  onClick={() => setTab(x.id)}
+                  data-classe-tab={x.id}
+                >
+                  {t(x.label)}
+                </button>
+              ))}
+            </div>
             <Button type="button" color="secondary" variant="outline" onClick={() => setExporting(true)}>
               {t('evaluations.export.file')}
             </Button>
           </div>
-          {exporting && <ExportSuivi classe={classe} periode={periode} onClose={() => setExporting(false)} />}
-          <ClasseView key={`${classe.id}-${periodeKey}`} classe={classe} periode={periode} />
+          {exporting && (
+            <ExportSuivi
+              classe={classe}
+              periode={periode}
+              initialKind={activeTab === 'positionnement' ? 'recapEval' : activeTab === 'moyennes' ? 'tabMoys' : activeTab === 'appreciations' ? 'recapAppreciations' : undefined}
+              onClose={() => setExporting(false)}
+            />
+          )}
+          {activeTab === 'suivi' && <ClasseView key={`${classe.id}-${periodeKey}`} classe={classe} periode={periode} />}
+          {activeTab === 'positionnement' && <PositionnementTab key={`${classe.id}-${periodeKey}`} classe={classe} periode={periode} />}
+          {activeTab === 'moyennes' && <MoyennesTab key={`${classe.id}-${periodeKey}`} classe={classe} periode={periode} />}
+          {activeTab === 'appreciations' && <AppreciationsTab key={`${classe.id}-${periodeKey}`} classe={classe} periode={periode} />}
         </>
       )}
     </div>
   );
 }
+
+type ClasseTab = 'suivi' | 'positionnement' | 'moyennes' | 'appreciations';
+const CLASSE_TABS: Array<{ id: ClasseTab; label: string }> = [
+  { id: 'suivi', label: 'evaluation.class.evaluation.header.followItems' },
+  { id: 'positionnement', label: 'evaluation.class.evaluation.header.positioning' },
+  { id: 'moyennes', label: 'evaluation.class.evaluation.header.average' },
+  { id: 'appreciations', label: 'evaluation.class.evaluation.header.teacherAppraisals' },
+];
 
 function ClasseView({
   classe,
@@ -124,8 +180,15 @@ function ClasseView({
   const chef = isChefEtabOrHeadTeacher(viewer, classe);
   const [onlyMine, setOnlyMine] = useState(!(chef || viewer.isPersEducNat));
   const [onlyEvaluated, setOnlyEvaluated] = useState(true);
+  const [vue, setVue] = useState<'domaines' | 'enseignements'>('domaines');
+  const data = useStructureData();
   const teachers = useMemo(() => myTeachers(viewer.userId, classe, viewer.today), [viewer.userId, classe, viewer.today]);
 
+  const enseignementsQuery = useQuery({
+    queryKey: ['competences', 'enseignements', classe.id, idCycle],
+    queryFn: () => api.getEnseignements(classe.id, idCycle),
+    enabled: vue === 'enseignements',
+  });
   const domainesQuery = useQuery({ queryKey: ['competences', 'domaines-classe', classe.id], queryFn: () => api.getDomainesClasse(classe.id) });
   const notesQuery = useQuery({
     queryKey: ['competences', structureId, 'suivi-classe', classe.id, periode?.id_type ?? 'annee'],
@@ -145,6 +208,16 @@ function ClasseView({
   const eleves = sortEleves((elevesQuery.data ?? []).filter((e) => isEvaluable(e, periode ?? undefined)));
   const levels = levelsForCycle(levelsQuery.data ?? [], idCycle);
   const table = conversionQuery.data ?? [];
+  const ctx: Ctx = {
+    classeId: classe.id,
+    evaluations: notesQuery.data ?? [],
+    eleves,
+    teachers,
+    table,
+    levels,
+    options: { average: !!averageQuery.data, isYear: periode === null, onlyMine },
+    onlyEvaluated,
+  };
 
   return (
     <section className="card p-16 d-flex flex-column gap-12">
@@ -171,22 +244,35 @@ function ClasseView({
       {table.length === 0 && <Alert type="warning">{t('competences.react.suivi.no.conversion')}</Alert>}
       <p className="small text-muted mb-0">{t('competences.react.classe.count', { count: eleves.length })}</p>
 
-      {(domainesQuery.data ?? []).map((d) => (
-        <ClasseDomaine
-          key={d.id}
-          domaine={d}
-          ctx={{
-            classeId: classe.id,
-            evaluations: notesQuery.data ?? [],
-            eleves,
-            teachers,
-            table,
-            levels,
-            options: { average: !!averageQuery.data, isYear: periode === null, onlyMine },
-            onlyEvaluated,
-          }}
-        />
-      ))}
+      <VueToggle value={vue} onChange={setVue} />
+      {vue === 'enseignements' && enseignementsQuery.isLoading && <LoadingScreen position={false} />}
+      {vue === 'enseignements' &&
+        enseignementBlocs(enseignementsQuery.data ?? [], notesQuery.data ?? [], new Map(data.matieres.map((m) => [m.id, m.name]))).map((bloc) => {
+          const competences = bloc.competences
+            .map((c) => ({ ...c, sous: c.sous.filter(({ competence, evals }) => classeShown(evals, competence.masque, onlyEvaluated, onlyMine, teachers)) }))
+            .filter((c) => c.sous.length > 0);
+          if (competences.length === 0) return null;
+          return (
+            <details key={bloc.key}>
+              <summary>
+                <h3 className="d-inline h5">{bloc.titre}</h3>
+              </summary>
+              <div className="ms-16 mt-8 d-flex flex-column gap-12">
+                {competences.map((c) => (
+                  <div key={c.id}>
+                    <h4 className="h6">{c.nom}</h4>
+                    <div className="ms-16 d-flex flex-column gap-4">
+                      {c.sous.map(({ competence, evals }) => (
+                        <ClasseCompetence key={competence.id} competence={{ ...competence, id_domaine: evals[0]?.id_domaine ?? 0 }} ctx={ctx} evals={evals} />
+                      ))}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </details>
+          );
+        })}
+      {vue === 'domaines' && (domainesQuery.data ?? []).map((d) => <ClasseDomaine key={d.id} domaine={d} ctx={ctx} />)}
     </section>
   );
 }
@@ -237,10 +323,10 @@ function ClasseDomaine({ domaine, ctx }: { domaine: DomaineSuivi; ctx: Ctx }) {
   );
 }
 
-function ClasseCompetence({ competence, ctx }: { competence: { id: number; nom: string; id_domaine: number }; ctx: Ctx }) {
+function ClasseCompetence({ competence, ctx, evals }: { competence: { id: number; nom: string; id_domaine: number }; ctx: Ctx; evals?: ClasseEvaluation[] }) {
   const { t } = useTranslation(['competences', 'common']);
   const [open, setOpen] = useState(false);
-  const perEleve = classeLevels(evalsOf(ctx, competence), ctx.eleves.map((e) => e.id), ctx.teachers, ctx.table, ctx.options);
+  const perEleve = classeLevels(evals ?? evalsOf(ctx, competence), ctx.eleves.map((e) => e.id), ctx.teachers, ctx.table, ctx.options);
   const maxValue = ctx.levels[0]?.value ?? 3;
   const parts = distribution(perEleve, maxValue);
   const total = ctx.eleves.length || 1;

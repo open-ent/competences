@@ -28,14 +28,27 @@ const KINDS: Array<{ kind: Kind; label: string }> = [
  * En CSV : le récapitulatif des niveaux et le tableau des moyennes (moyennes et/ou positionnements,
  * appréciation et avis du conseil).
  */
-export function ExportSuivi({ classe, periode, eleveId, onClose }: { classe: Classe; periode: PeriodeClasse | null; eleveId?: string; onClose: () => void }) {
+export function ExportSuivi({
+  classe,
+  periode,
+  eleveId,
+  initialKind,
+  onClose,
+}: {
+  classe: Classe;
+  periode: PeriodeClasse | null;
+  eleveId?: string;
+  /** Export proposé d'abord : celui qui correspond à l'onglet affiché. */
+  initialKind?: 'recapEval' | 'tabMoys' | 'recapAppreciations';
+  onClose: () => void;
+}) {
   const { t } = useTranslation(['competences', 'viescolaire', 'common']);
   const { structureId } = useStructure();
   const data = useStructureData();
   const viewer = useViewer()!;
   // Le CSV n'est proposé qu'à la direction, au professeur principal et au personnel d'éducation
   const csvAllowed = canExportCsv(viewer, classe);
-  const [kind, setKind] = useState<Kind>(eleveId ? 'releveComp' : 'recapEval');
+  const [kind, setKind] = useState<Kind>(eleveId ? 'releveComp' : (initialKind ?? 'recapEval'));
   const [text, setText] = useState(false);
   const [csv, setCsv] = useState(false);
   const [tab, setTab] = useState({ moyenneMat: true, positionnementFinal: false, appreciation: false, avisConseil: false, avisOrientation: false });

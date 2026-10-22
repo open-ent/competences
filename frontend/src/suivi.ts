@@ -257,14 +257,14 @@ interface EnseignementRef {
   competences_1?: Array<{ id: number; nom: string; masque?: boolean; competences_2?: Array<{ id: number; nom: string; masque?: boolean }> }>;
 }
 
-export interface EnseignementBloc {
+export interface EnseignementBloc<E = CompetenceEvaluation> {
   key: string;
   /** Nom de l'enseignement, suivi de la matière pour les langues. */
   titre: string;
   competences: Array<{
     id: number;
     nom: string;
-    sous: Array<{ competence: { id: number; nom: string; masque: boolean }; evals: CompetenceEvaluation[] }>;
+    sous: Array<{ competence: { id: number; nom: string; masque: boolean }; evals: E[] }>;
   }>;
 }
 
@@ -273,10 +273,14 @@ export interface EnseignementBloc {
  * évaluations (rattachées par compétence, quel que soit le domaine). Pour les langues, un bloc par
  * matière évaluée, limité aux évaluations de cette matière ; sans évaluation, un seul bloc.
  */
-export function enseignementBlocs(enseignements: EnseignementRef[], evaluations: CompetenceEvaluation[], matiereNames: Map<string, string>): EnseignementBloc[] {
-  const blocs: EnseignementBloc[] = [];
+export function enseignementBlocs<E extends { id_competence: number; id_matiere: string } = CompetenceEvaluation>(
+  enseignements: EnseignementRef[],
+  evaluations: E[],
+  matiereNames: Map<string, string>,
+): Array<EnseignementBloc<E>> {
+  const blocs: Array<EnseignementBloc<E>> = [];
   for (const ens of enseignements) {
-    const build = (matiereId?: string): EnseignementBloc['competences'] =>
+    const build = (matiereId?: string): EnseignementBloc<E>['competences'] =>
       (ens.competences_1 ?? []).map((c1) => ({
         id: c1.id,
         nom: c1.nom,

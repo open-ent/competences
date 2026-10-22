@@ -1143,3 +1143,19 @@ export const getEvaluatedDevoirs = async (devoirIds: number[]): Promise<Array<{ 
 
 /** Duplique une évaluation sur d'autres classes ou groupes. */
 export const duplicateDevoir = (devoirId: number, classes: string[]) => send('POST', `/competences/devoir/${devoirId}/duplicate`, { classes });
+
+/** Appréciation d'un enseignant sur la classe, avec les statistiques de sa matière (`recapAppreciations` en JSON). */
+export interface ClasseAppreciation {
+  prof?: string;
+  mat?: string;
+  max?: string | number;
+  min?: string | number;
+  moy?: string | number;
+  appr?: string;
+  coT?: string[];
+}
+
+export const getClasseAppreciations = async (structureId: string, classeId: string, idPeriode: number | null): Promise<ClasseAppreciation[]> =>
+  (await getJson<{ data?: ClasseAppreciation[] }>(
+    `/competences/recapAppreciations/print/${classeId}/export?text=false&idStructure=${structureId}&json=true${idPeriode !== null ? `&idPeriode=${idPeriode}` : ''}`,
+  ))?.data ?? [];

@@ -287,3 +287,44 @@ export function tableauMoyennesCsv(
   ];
   return `﻿${lines.join('\r\n')}\r\n`;
 }
+
+export interface MoyennesTable {
+  /** Une colonne par matière notée sur la période (hors colonne « élève » et « moyenne générale »). */
+  matieres: Array<{ id: string; name: string; teachers: string }>;
+  /** Une ligne par élève : moyenne de chaque matière puis moyenne générale. */
+  lignes: Array<{ name: string; cells: string[]; generale: string }>;
+  /** Moyenne, minimum, maximum de la classe, dans le même ordre de colonnes que les lignes. */
+  pied: Array<{ label: string; cells: string[]; generale: string }>;
+}
+
+const cellText = (v: unknown) => (v == null || v === '' ? 'NN' : fr(v));
+
+/**
+ * Tableau des moyennes de la classe affiché à l'écran (onglet « Moyennes » du suivi de classe) : mêmes données et mêmes
+ * règles que le CSV — une matière sans moyenne ni minimum/maximum calculables est écartée —, élèves triés par nom.
+ * Renvoie `null` quand aucune matière n'a de moyenne : l'écran dit alors qu'il n'y a rien à afficher.
+ */
+export function moyennesTable(
+  data: TableauData,
+  matieres: Array<{ id: string; name: string }>,
+  ctx: { teachersOf: (matiereId: string) => string; labels: { moyenne: string; minimum: string; maximum: string } },
+): MoyennesTable | null {
+  const st = data.statistiques;
+  const notees = matieres.filter((m) => !isNN(st[m.id]?.moyenne));
+  if (notees.length === 0) return null;
+  const stat = (m: { id: string }, field: keyof Stat) => cellText((st[m.id]?.moyenne as Stat | undefined)?.[field]);
+  const generale = st.moyenne_generale as Stat | undefined;
+  return {
+    matieres: notees.map((m) => ({ id: m.id, name: m.name, teachers: ctx.teachersOf(m.id) })),
+    lignes: [...data.eleves]
+      .sort((a, b) => a.displayName.localeCompare(b.displayName))
+      .map((e) => ({ name: e.displayName, cells: notees.map((m) => cellText(e.moyenneFinale?.[m.id])), generale: cellText(e.moyenne_generale) })),
+    pied: (
+      [
+        [ctx.labels.moyenne, 'moyenne'],
+        [ctx.labels.minimum, 'minimum'],
+        [ctx.labels.maximum, 'maximum'],
+      ] as const
+    ).map(([label, field]) => ({ label, cells: notees.map((m) => stat(m, field)), generale: cellText(generale?.[field]) })),
+  };
+}

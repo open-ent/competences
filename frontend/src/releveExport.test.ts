@@ -109,3 +109,34 @@ describe('tableau des moyennes en CSV', () => {
     expect(tableauMoyennesCsv({ eleves: [], statistiques: {} }, [{ id: 'm', name: 'M' }], options, { t, classeName: '', periodeName: '', teachersOf: () => '' })).toBeNull();
   });
 });
+
+import { moyennesTable } from './releveExport';
+
+describe('tableau des moyennes affiché', () => {
+  const data = {
+    eleves: [
+      { displayName: 'Zoé B', moyenneFinale: { m1: 12.5, m2: 'NN' }, moyenne_generale: 12.5 },
+      { displayName: 'Anne A', moyenneFinale: { m1: 9, m2: 15 }, moyenne_generale: 12 },
+    ],
+    statistiques: {
+      m1: { moyenne: { moyenne: 10.75, minimum: 9, maximum: 12.5 } },
+      m2: { moyenne: { moyenne: 15, minimum: 15, maximum: 15 } },
+      m3: { moyenne: { moyenne: 'NN', minimum: 'NN', maximum: 'NN' } },
+      moyenne_generale: { moyenne: 12.25, minimum: 12, maximum: 12.5 },
+    },
+  } as never;
+  const matieres = [{ id: 'm1', name: 'Maths' }, { id: 'm2', name: 'Français' }, { id: 'm3', name: 'Arts' }];
+  const ctx = { teachersOf: (id: string) => `prof-${id}`, labels: { moyenne: 'Moyenne', minimum: 'Min', maximum: 'Max' } };
+
+  it('écarte les matières sans moyenne, trie les élèves, formate à la française', () => {
+    const t = moyennesTable(data, matieres, ctx)!;
+    expect(t.matieres.map((m) => m.name)).toEqual(['Maths', 'Français']);
+    expect(t.lignes.map((l) => l.name)).toEqual(['Anne A', 'Zoé B']);
+    expect(t.lignes[1].cells).toEqual(['12,5', 'NN']);
+    expect(t.pied[0]).toEqual({ label: 'Moyenne', cells: ['10,75', '15'], generale: '12,25' });
+    expect(t.pied[2].generale).toBe('12,5');
+  });
+  it('rien à afficher sans aucune moyenne', () => {
+    expect(moyennesTable({ eleves: [], statistiques: {} }, matieres, ctx)).toBeNull();
+  });
+});
