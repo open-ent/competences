@@ -1,4 +1,4 @@
-import { Alert, Button, LoadingScreen } from '@open-ent/react';
+import { Alert, Button, LoadingScreen, Modal } from '@open-ent/react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useEffect, useId, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -12,9 +12,10 @@ import { BulletinView } from './FamilyBulletin';
 import { ReleveView } from './FamilyReleve';
 import { EvaluationLibre } from '../features/EvaluationLibre';
 import { ExportSuivi } from '../features/ExportSuivi';
+import { FicheEleve } from '../features/FicheEleve';
 import { ClasseSelect, StructureSelect, usePeriodeLabel } from '../features/Filters';
 import { DomaineBlock, EnseignementBlocs, Legend, VueToggle } from '../features/SuiviTree';
-import { isChefEtabOrHeadTeacher, isValidClasse, sortClasses } from '../rules';
+import { formatDate, isChefEtabOrHeadTeacher, isValidClasse, sortClasses } from '../rules';
 import { levelsForCycle, sortEleves } from '../saisie';
 import { useStructure, useStructureData, useViewer } from '../structure';
 import { CompetenceEvaluation, enseignementBlocs, finalMatieres, myTeachers, nextFinal } from '../suivi';
@@ -27,8 +28,9 @@ import type { PeriodeClasse } from '../types';
  *
  * Accepte `?idEleve=…&idClasse=…`, posés par la recherche d'élève de l'accueil (comme l'AngularJS).
  *
- * Présentation par domaine ou par enseignement ; bilan de fin de cycle en second onglet. Pas encore portés : graphiques,
- * Onglets suivi des notes et bulletins, évaluation libre, export PDF du relevé de compétences.
+ * Présentation par domaine ou par enseignement ; onglets suivi des notes, bulletins et bilan de fin de cycle ; évaluation
+ * libre (ajout et suppression), export, fiche de l'élève (photo, répartition des niveaux, vie scolaire), barre de
+ * proportion et graphique d'évolution de chaque compétence. La vue « cycle » n'existe que dans l'espace parents.
  */
 export function SuiviEleve() {
   const { t } = useTranslation(['competences', 'viescolaire', 'common']);
@@ -168,6 +170,7 @@ export function SuiviEleve() {
               {eleveIndex < eleves.length - 1 ? nameOf(eleves[eleveIndex + 1]) : ''} →
             </Button>
           </div>
+          <FicheEleve key={`${eleve.id}-${periodeKey}`} classe={classe} eleve={eleve} periode={periodeKey === 'annee' ? null : (periode ?? null)} periodes={periodes} />
           <div className="d-flex gap-8" role="tablist" aria-label={t('evaluations.suivi.eleve.title')}>
             {(
               [
@@ -238,6 +241,7 @@ function SuiviCompetences({
   const [error, setError] = useState(false);
   const [vue, setVue] = useState<'domaines' | 'enseignements'>('domaines');
   const [libre, setLibre] = useState<{ id: number; nom: string } | null>(null);
+  const [toDelete, setToDelete] = useState<CompetenceEvaluation | null>(null);
   const data = useStructureData();
 
   const notesKey = ['competences', structureId, 'suivi', eleveId, idCycle, periode?.id_type ?? 'annee'];
@@ -290,6 +294,19 @@ function SuiviCompetences({
     }
   };
 
+  const deleteLibre = async () => {
+    if (!toDelete) return;
+    try {
+      setError(false);
+      await api.deleteDevoir(toDelete.id_devoir);
+    } catch {
+      setError(true);
+    } finally {
+      setToDelete(null);
+      await queryClient.invalidateQueries({ queryKey: notesKey });
+    }
+  };
+
   const blockProps = {
     evaluations,
     teachers,
@@ -302,6 +319,7 @@ function SuiviCompetences({
     onSetFinal: setFinal,
     // La direction n'y avait pas accès dans l'AngularJS (« en construction »).
     onEvaluationLibre: !isChefEtabOrHeadTeacher(viewer) ? setLibre : undefined,
+    onDeleteLibre: setToDelete,
   };
 
   return (
@@ -342,6 +360,26 @@ function SuiviCompetences({
           onClose={() => setLibre(null)}
           onSaved={() => void queryClient.invalidateQueries({ queryKey: notesKey })}
         />
+      )}
+      {toDelete && (
+        <Modal id="delete-libre" isOpen size="md" onModalClose={() => setToDelete(null)}>
+          <Modal.Header onModalClose={() => setToDelete(null)}>{t('evaluations.tab.delete')}</Modal.Header>
+          <Modal.Body>
+            <p>{t('evaluations.tab.delete.gonna')}</p>
+            <p className="mb-0">
+              <strong>{toDelete.evaluation_libelle}</strong>
+              {toDelete.formative ? ' (F)' : ''} — {toDelete.owner_name} — {formatDate(toDelete.evaluation_date)}
+            </p>
+          </Modal.Body>
+          <Modal.Footer>
+            <Button color="tertiary" variant="ghost" onClick={() => setToDelete(null)}>
+              {t('competences.cancel')}
+            </Button>
+            <Button color="danger" variant="filled" onClick={deleteLibre} data-delete-libre-confirm>
+              {t('evaluations.evaluation.libre.delete')}
+            </Button>
+          </Modal.Footer>
+        </Modal>
       )}
       <VueToggle value={vue} onChange={setVue} />
       {vue === 'enseignements' && enseignementsQuery.isLoading && <LoadingScreen position={false} />}

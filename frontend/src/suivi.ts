@@ -28,6 +28,8 @@ export interface CompetenceEvaluation {
   niveau_final: number | null;
   niveau_final_annuel: number | null;
   eval_lib_historise: boolean;
+  /** 1 = évaluation libre (devoir créé pour un seul élève, supprimable depuis le suivi). */
+  id_typeeval?: number;
 }
 
 /** Une ligne de la table de conversion (`GET /competences/competence/notes/bilan/conversion`). */
@@ -291,4 +293,47 @@ export function enseignementBlocs(enseignements: EnseignementRef[], evaluations:
         blocs.push({ key: `${ens.id}-${m}`, titre: `${ens.nom} — ${matiereNames.get(m) ?? m}`, competences: build(m) });
   }
   return blocs;
+}
+
+export interface ProportionSlice {
+  /** Niveau (-1 = non évalué). */
+  value: number;
+  /** Nombre d'évaluations distinctes (devoir + compétence) à ce niveau. */
+  count: number;
+  percent: number;
+}
+
+/**
+ * `proportion-suivi-competence` (élève) : part de chaque niveau parmi les évaluations d'une compétence. Les doublons
+ * (même note rencontrée par deux chemins du suivi) ne comptent qu'une fois. Les parts vides sont omises.
+ */
+export function proportions(evals: Array<Pick<CompetenceEvaluation, 'evaluation' | 'id_devoir' | 'id_competence' | 'id_competences_notes'>>): ProportionSlice[] {
+  const seen = new Set<number>();
+  const unique = evals.filter((e) => {
+    if (!e.id_competences_notes) return true;
+    if (seen.has(e.id_competences_notes)) return false;
+    seen.add(e.id_competences_notes);
+    return true;
+  });
+  if (unique.length === 0) return [];
+  const values = [...new Set(unique.map((e) => e.evaluation))].sort((a, b) => a - b);
+  return values.map((value) => {
+    const at = unique.filter((e) => e.evaluation === value);
+    return { value, count: new Set(at.map((e) => `${e.id_devoir}:${e.id_competence}`)).size, percent: (at.length / unique.length) * 100 };
+  });
+}
+
+export interface EvolutionPoint {
+  date: string;
+  label: string;
+  value: number;
+  formative: boolean;
+}
+
+/** Points du graphique d'évolution d'une compétence : les évaluations notées, de la plus ancienne à la plus récente. */
+export function evolutionPoints(evals: Array<Pick<CompetenceEvaluation, 'evaluation' | 'evaluation_date' | 'evaluation_libelle' | 'formative'>>): EvolutionPoint[] {
+  return evals
+    .filter((e) => e.evaluation > -1)
+    .map((e) => ({ date: e.evaluation_date, label: e.evaluation_libelle, value: e.evaluation, formative: !!e.formative }))
+    .sort((a, b) => a.date.localeCompare(b.date));
 }

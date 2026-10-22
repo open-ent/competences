@@ -4,6 +4,7 @@ import { useTranslation } from 'react-i18next';
 import type { DomaineSuivi } from '../api';
 import { formatDate } from '../rules';
 import { Level, UNEVALUATED_COLOR } from '../saisie';
+import { ProportionBar, EvolutionChart } from './SuiviCharts';
 import { CompetenceEvaluation, competenceLevels, Conversion, EnseignementBloc, isMine, isShown, TeacherSubject } from '../suivi';
 
 /*
@@ -49,6 +50,8 @@ export type BlockProps = {
   rawLevel?: boolean;
   /** Suivi enseignant : évaluer la compétence hors de toute évaluation (« évaluation libre »). */
   onEvaluationLibre?: (competence: { id: number; nom: string }) => void;
+  /** Suivi enseignant : supprimer une évaluation libre depuis le détail d'une compétence. */
+  onDeleteLibre?: (evaluation: CompetenceEvaluation) => void;
 };
 
 /** Un domaine, ses compétences visibles, puis ses sous-domaines ; caché s'il ne montre rien. */
@@ -102,6 +105,7 @@ function CompetenceRow({
   const { t } = useTranslation(['competences', 'common']);
   const [open, setOpen] = useState(false);
   const [busy, setBusy] = useState(false);
+  const [detail, setDetail] = useState<'tableau' | 'graphique'>('tableau');
   const levels = props.rawLevel
     ? { all: Math.max(-1, ...evals.map((e) => e.evaluation)) }
     : competenceLevels(evals, props.teachers, props.table, props.options);
@@ -144,6 +148,7 @@ function CompetenceRow({
             <LevelBubble level={levelOf(levels.all)} label={`${t('evaluation.suivi.niveau')} : ${describe(levels.all)}`} />
           </>
         )}
+        {!props.rawLevel && <ProportionBar evals={shownEvals} levels={props.levels} />}
       </div>
       {open && props.onEvaluationLibre && (
         <div className="mt-8">
@@ -153,6 +158,21 @@ function CompetenceRow({
         </div>
       )}
       {open && (
+        <div className="btn-group btn-group-sm mt-8" role="group" aria-label={t('competences.react.suivi.detail.view')}>
+          {(['tableau', 'graphique'] as const).map((v) => (
+            <button key={v} type="button" className={`btn ${detail === v ? 'btn-primary' : 'btn-outline-primary'}`} aria-pressed={detail === v} onClick={() => setDetail(v)} data-detail-view={v}>
+              {t(v === 'tableau' ? 'competences.react.suivi.detail.table' : 'competences.react.suivi.detail.graph')}
+            </button>
+          ))}
+        </div>
+      )}
+      {open && detail === 'graphique' && (
+        <div className="mt-8">
+          <EvolutionChart evals={shownEvals} levels={props.levels} />
+          <p className="small text-muted mb-0">{t('evaluations.graph.formative')}</p>
+        </div>
+      )}
+      {open && detail === 'tableau' && (
         <table className="table table-sm small mt-8 mb-0">
           <thead>
             <tr>
@@ -160,12 +180,17 @@ function CompetenceRow({
               <th scope="col">{t('viescolaire.notes.title')}</th>
               <th scope="col">{t('evaluations.test.teacher')}</th>
               <th scope="col">{t('evaluation.suivi.niveau')}</th>
+              {props.onDeleteLibre && (
+                <th scope="col">
+                  <span className="visually-hidden">{t('evaluations.test.delete')}</span>
+                </th>
+              )}
             </tr>
           </thead>
           <tbody>
             {shownEvals.length === 0 && (
               <tr>
-                <td colSpan={4} className="text-muted">
+                <td colSpan={5} className="text-muted">
                   {t('competences.react.suivi.no.evaluation')}
                 </td>
               </tr>
@@ -181,6 +206,15 @@ function CompetenceRow({
                 <td>
                   <LevelBubble level={levelOf(e.evaluation)} label={describe(e.evaluation)} /> {describe(e.evaluation)}
                 </td>
+                {props.onDeleteLibre && (
+                  <td>
+                    {e.id_typeeval === 1 && (
+                      <button type="button" className="btn btn-sm btn-outline-danger" onClick={() => props.onDeleteLibre!(e)} data-delete-libre={e.id_competences_notes}>
+                        {t('evaluations.test.delete')}
+                      </button>
+                    )}
+                  </td>
+                )}
               </tr>
             ))}
           </tbody>

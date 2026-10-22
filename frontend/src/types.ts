@@ -202,6 +202,7 @@ export interface EleveDevoir {
   lastName?: string;
   displayName?: string;
   deleteDate?: string | null;
+  birthDate?: string | null;
 }
 
 /** Période d'une classe (`GET /viescolaire/periodes?idGroupe=`). */
