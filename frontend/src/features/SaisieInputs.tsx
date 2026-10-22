@@ -43,6 +43,7 @@ export function NoteInput({
         aria-invalid={!!problem}
         aria-describedby={problem ? problemId : undefined}
         list={listId}
+        data-nav-cell
         value={draft}
         disabled={disabled}
         onChange={(e) => setDraft(e.target.value)}
@@ -89,6 +90,7 @@ export function AppreciationInput({
   const common = {
     className: 'form-control form-control-sm',
     'aria-label': label,
+    'data-nav-cell': true,
     value: draft,
     disabled,
     maxLength,

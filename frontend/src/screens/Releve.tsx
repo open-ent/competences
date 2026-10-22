@@ -19,6 +19,8 @@ import {
   sousMatiereMoyenne,
   yearRow,
 } from '../releve';
+import { FicheEleve } from '../features/FicheEleve';
+import { gridKeyDown } from '../gridNav';
 import { isChefEtabOrHeadTeacher, isValidClasse, matieresForClasse, sortClasses } from '../rules';
 import { noteWrite, parseSaisie, saisieDisplay, sortEleves } from '../saisie';
 import { useStructure, useStructureData, useViewer } from '../structure';
@@ -30,8 +32,8 @@ import type { Devoir, PeriodeClasse } from '../types';
  * l'appréciation de l'enseignant, puis les statistiques de la classe. Sur l'année, les moyennes
  * de chaque période.
  *
- * Export PDF et CSV. Pas encore portés : les graphiques, la fiche détaillée d'un élève et
- * l'aide à la saisie des éléments du programme.
+ * Export PDF et CSV ; fiche de l'élève dont on touche une ligne ; navigation au clavier entre les cases (flèches, Entrée).
+ * Pas encore portés : les graphiques et l'aide à la saisie des éléments du programme.
  */
 export function Releve() {
   const { t } = useTranslation(['competences', 'viescolaire', 'common']);
@@ -196,6 +198,11 @@ function PeriodView({ classe, matiereId, periode, periodes }: ViewProps & { peri
   const [showNotes, setShowNotes] = useState(true);
   const [exporting, setExporting] = useState(false);
   const [confirmClear, setConfirmClear] = useState<{ eleveId: string; previous: string } | null>(null);
+  const [ficheId, setFicheId] = useState<string | null>(null);
+  const pickEleve = (e: { target: EventTarget }) => {
+    const id = (e.target as HTMLElement).closest<HTMLElement>('[data-eleve]')?.dataset.eleve;
+    if (id) setFicheId(id);
+  };
 
   const devoirs = useMemo(
     () =>
@@ -336,121 +343,135 @@ function PeriodView({ classe, matiereId, periode, periodes }: ViewProps & { peri
         </div>
       )}
 
-      <div className="table-responsive card">
-        <table className="table align-middle mb-0">
-          <thead>
-            <tr>
-              <th scope="col">{t('student')}</th>
-              {showNotes &&
-                devoirs.map((d) => (
-                  <th key={d.id} scope="col" className="text-center small">
-                    <Link to={`/devoir/${d.id}`}>{d.name}</Link>
-                    {sousMatiereName(d) && <div className="text-muted">({sousMatiereName(d)})</div>}
-                  </th>
-                ))}
-              <th scope="col" className="text-center">{t('average.auto.min')}</th>
-              <th scope="col" className="text-center">{t('average.final.min')}</th>
-              {sousMatieres.map((s) => (
-                <th key={s.id_type_sousmatiere} scope="col" className="text-center">
-                  {t('average.min')} {s.libelle}
-                </th>
-              ))}
-              <th scope="col" style={{ minWidth: 260 }}>
-                {t('viescolaire.utils.appreciation')}
-              </th>
-            </tr>
-          </thead>
-          <tbody>
-            {eleves.map((eleve) => {
-              const name = eleve.displayName ?? `${eleve.lastName ?? ''} ${eleve.firstName ?? ''}`.trim();
-              const finale = moyenneFinale(eleve);
-              const appreciation = eleve.appreciation_matiere_periode ?? '';
-              return (
-                <tr key={eleve.id}>
-                  <th scope="row" className={`fw-normal ${eleve.deleteDate ? 'text-decoration-line-through text-muted' : ''}`}>
-                    {name}
-                  </th>
-                  {showNotes &&
-                    devoirs.map((d) => {
-                      const current = noteOf(releve.notes, eleve.id, d.id);
-                      const devoirPeriode = periodes.find((p) => p.id_type === d.id_periode);
-                      return (
-                        <td key={d.id} className="text-center">
-                          {d.is_evaluated || current?.id_annotation != null ? (
-                            <NoteInput
-                              label={`${d.name} ${name}`}
-                              value={saisieDisplay(
-                                current ? { ...current, id_eleve: eleve.id, id_appreciation: null, appreciation: null } : undefined,
-                                annotations,
-                              )}
-                              annotations={annotations}
-                              disabled={isNoteLocked(devoirPeriode, today, chefOrHead)}
-                              onCommit={(raw) => commitNote(d, eleve.id, raw)}
-                            />
-                          ) : (
-                            <span className="text-muted">—</span>
-                          )}
-                        </td>
-                      );
-                    })}
-                  <td className="text-center fw-bold">{formatMoyenne(eleve.moyenne)}</td>
-                  <td className="text-center">
-                    <NoteInput
-                      label={`${t('average.final')} ${name}`}
-                      value={finale.value}
-                      annotations={[]}
-                      disabled={locked}
-                      onCommit={(raw) => commitMoyenne(eleve.id, raw, eleve.moyenne, finale.value)}
-                    />
-                    {finale.isSet && <span className="visually-hidden">{t('competences.react.releve.final.changed')}</span>}
-                  </td>
-                  {sousMatieres.map((s) => (
-                    <td key={s.id_type_sousmatiere} className="text-center">
-                      {sousMatiereMoyenne(eleve, matiereId, s.id_type_sousmatiere)}
-                    </td>
-                  ))}
-                  <td>
-                    <AppreciationInput
-                      label={`${t('viescolaire.utils.appreciation')} ${name}`}
-                      value={appreciation}
-                      disabled={locked}
-                      multiline
-                      maxLength={MAX_APPRECIATION}
-                      onCommit={(value) => commitAppreciation(eleve.id, value, appreciation)}
-                    />
-                  </td>
-                </tr>
-              );
-            })}
-          </tbody>
-          <tfoot className="table-light small">
-            {(
-              [
-                ['viescolaire.classe.moyenne', 'moyenne', 'moyenne'],
-                ['viescolaire.classe.note.min', 'noteMin', 'min'],
-                ['viescolaire.classe.note.max', 'noteMax', 'max'],
-              ] as const
-            ).map(([label, devoirField, classeField]) => (
-              <tr key={label}>
-                <th scope="row">{t(label)}</th>
+      <div className="d-flex gap-16 align-items-start">
+        <div className="table-responsive card flex-fill" style={{ minWidth: 0 }}>
+          <table className="table align-middle mb-0" onKeyDown={gridKeyDown} onFocus={pickEleve} onClick={pickEleve}>
+            <thead>
+              <tr>
+                <th scope="col">{t('student')}</th>
                 {showNotes &&
                   devoirs.map((d) => (
-                    <td key={d.id} className="text-center">
-                      {d.is_evaluated ? formatMoyenne(stats(d.id)?.[devoirField]) : ''}
+                    <th key={d.id} scope="col" className="text-center small">
+                      <Link to={`/devoir/${d.id}`}>{d.name}</Link>
+                      {sousMatiereName(d) && <div className="text-muted">({sousMatiereName(d)})</div>}
+                    </th>
+                  ))}
+                <th scope="col" className="text-center">{t('average.auto.min')}</th>
+                <th scope="col" className="text-center">{t('average.final.min')}</th>
+                {sousMatieres.map((s) => (
+                  <th key={s.id_type_sousmatiere} scope="col" className="text-center">
+                    {t('average.min')} {s.libelle}
+                  </th>
+                ))}
+                <th scope="col" style={{ minWidth: 260 }}>
+                  {t('viescolaire.utils.appreciation')}
+                </th>
+              </tr>
+            </thead>
+            <tbody>
+              {eleves.map((eleve) => {
+                const name = eleve.displayName ?? `${eleve.lastName ?? ''} ${eleve.firstName ?? ''}`.trim();
+                const finale = moyenneFinale(eleve);
+                const appreciation = eleve.appreciation_matiere_periode ?? '';
+                return (
+                  <tr key={eleve.id} data-nav-row data-eleve={eleve.id}>
+                    <th scope="row" className={`fw-normal ${eleve.deleteDate ? 'text-decoration-line-through text-muted' : ''}`}>
+                      {name}
+                    </th>
+                    {showNotes &&
+                      devoirs.map((d) => {
+                        const current = noteOf(releve.notes, eleve.id, d.id);
+                        const devoirPeriode = periodes.find((p) => p.id_type === d.id_periode);
+                        return (
+                          <td key={d.id} className="text-center">
+                            {d.is_evaluated || current?.id_annotation != null ? (
+                              <NoteInput
+                                label={`${d.name} ${name}`}
+                                value={saisieDisplay(
+                                  current ? { ...current, id_eleve: eleve.id, id_appreciation: null, appreciation: null } : undefined,
+                                  annotations,
+                                )}
+                                annotations={annotations}
+                                disabled={isNoteLocked(devoirPeriode, today, chefOrHead)}
+                                onCommit={(raw) => commitNote(d, eleve.id, raw)}
+                              />
+                            ) : (
+                              <span className="text-muted">—</span>
+                            )}
+                          </td>
+                        );
+                      })}
+                    <td className="text-center fw-bold">{formatMoyenne(eleve.moyenne)}</td>
+                    <td className="text-center">
+                      <NoteInput
+                        label={`${t('average.final')} ${name}`}
+                        value={finale.value}
+                        annotations={[]}
+                        disabled={locked}
+                        onCommit={(raw) => commitMoyenne(eleve.id, raw, eleve.moyenne, finale.value)}
+                      />
+                      {finale.isSet && <span className="visually-hidden">{t('competences.react.releve.final.changed')}</span>}
+                    </td>
+                    {sousMatieres.map((s) => (
+                      <td key={s.id_type_sousmatiere} className="text-center">
+                        {sousMatiereMoyenne(eleve, matiereId, s.id_type_sousmatiere)}
+                      </td>
+                    ))}
+                    <td>
+                      <AppreciationInput
+                        label={`${t('viescolaire.utils.appreciation')} ${name}`}
+                        value={appreciation}
+                        disabled={locked}
+                        multiline
+                        maxLength={MAX_APPRECIATION}
+                        onCommit={(value) => commitAppreciation(eleve.id, value, appreciation)}
+                      />
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+            <tfoot className="table-light small">
+              {(
+                [
+                  ['viescolaire.classe.moyenne', 'moyenne', 'moyenne'],
+                  ['viescolaire.classe.note.min', 'noteMin', 'min'],
+                  ['viescolaire.classe.note.max', 'noteMax', 'max'],
+                ] as const
+              ).map(([label, devoirField, classeField]) => (
+                <tr key={label}>
+                  <th scope="row">{t(label)}</th>
+                  {showNotes &&
+                    devoirs.map((d) => (
+                      <td key={d.id} className="text-center">
+                        {d.is_evaluated ? formatMoyenne(stats(d.id)?.[devoirField]) : ''}
+                      </td>
+                    ))}
+                  <td className="text-center">{classeStat('null', classeField)}</td>
+                  <td className="text-center">{classeStat('nullFinal', classeField)}</td>
+                  {sousMatieres.map((s) => (
+                    <td key={s.id_type_sousmatiere} className="text-center">
+                      {formatMoyenne(releve._moyenne_classe?.[String(s.id_type_sousmatiere)]?.[classeField])}
                     </td>
                   ))}
-                <td className="text-center">{classeStat('null', classeField)}</td>
-                <td className="text-center">{classeStat('nullFinal', classeField)}</td>
-                {sousMatieres.map((s) => (
-                  <td key={s.id_type_sousmatiere} className="text-center">
-                    {formatMoyenne(releve._moyenne_classe?.[String(s.id_type_sousmatiere)]?.[classeField])}
-                  </td>
-                ))}
-                <td />
-              </tr>
-            ))}
-          </tfoot>
-        </table>
+                  <td />
+                </tr>
+              ))}
+            </tfoot>
+          </table>
+        </div>
+        {ficheId && eleves.some((e) => e.id === ficheId) && (
+          <div className="d-none d-lg-block" style={{ width: 280, position: 'sticky', top: 16, flexShrink: 0 }}>
+            <FicheEleve
+              key={ficheId}
+              classe={classe}
+              eleve={eleves.find((e) => e.id === ficheId)!}
+              periode={periode}
+              periodes={periodes.filter((p) => p.id !== null)}
+              withProportions={false}
+            />
+          </div>
+        )}
       </div>
 
       {confirmClear && (

@@ -5,10 +5,12 @@ import { useTranslation } from 'react-i18next';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 
 import * as api from '../api';
+import { FicheEleve } from '../features/FicheEleve';
 import { usePeriodeLabel } from '../features/Filters';
 import { ImportNotes } from '../features/ImportNotes';
 import { PrintDevoir } from '../features/PrintDevoir';
 import { AppreciationInput, NoteInput } from '../features/SaisieInputs';
+import { gridKeyDown } from '../gridNav';
 import { dateLocale } from '../locale';
 import { formatDate, isChefEtabOrHeadTeacher, isHeadTeacher } from '../rules';
 import {
@@ -172,6 +174,17 @@ function SaisieView(props: SaisieViewProps) {
   const [bulkLevel, setBulkLevel] = useState<number | null>(null);
   const [apprecVisible, setApprecVisible] = useState(!!devoir.apprec_visible);
   const [info, setInfo] = useState<string | null>(null);
+  // Élève dont la fiche est affichée : celui dont on touche une case (`getEleveInfo`).
+  const [ficheId, setFicheId] = useState<string | null>(null);
+  const structure = useStructureData();
+  const classe = structure.classes.find((c) => c.id === devoir.id_groupe);
+  const periodesQuery = useQuery({ queryKey: ['competences', 'periodes-classe', devoir.id_groupe], queryFn: () => api.getPeriodesClasse(devoir.id_groupe) });
+  const periodesClasse = (periodesQuery.data ?? []).filter((p) => p.id !== null);
+  const fiche = eleves.find((e) => e.id === ficheId);
+  const pickEleve = (e: { target: EventTarget }) => {
+    const id = (e.target as HTMLElement).closest<HTMLElement>('[data-eleve]')?.dataset.eleve;
+    if (id) setFicheId(id);
+  };
 
   const notesByEleve = useMemo(() => new Map(notes.map((n) => [n.id_eleve, n])), [notes]);
   const grid = useMemo(() => levelGrid(levelNotes), [levelNotes]);
@@ -422,122 +435,141 @@ function SaisieView(props: SaisieViewProps) {
           {eleves.length === 0 ? (
             <Alert type="info">{t('competences.react.saisie.no.student')}</Alert>
           ) : (
-            <div className="table-responsive card">
-              <table className="table align-middle mb-0">
-                <thead>
-                  <tr>
-                    {hasCompetences && (
-                      <th scope="col">
-                        <input
-                          type="checkbox"
-                          className="form-check-input"
-                          aria-label={t('competences.react.saisie.select.all')}
-                          checked={allSelected}
-                          disabled={locked}
-                          onChange={() => setSelectedEleves(allSelected ? new Set() : new Set(selectable.map((e) => e.id)))}
-                        />
-                      </th>
-                    )}
-                    <th scope="col">{t('viescolaire.utils.student')}</th>
-                    <th scope="col" style={{ minWidth: 96 }}>
-                      {t('evaluations.grade')}
-                    </th>
-                    {competences.map((c) => (
-                      <th key={c.id_competence} scope="col" className="text-center" title={competenceLabel(c)}>
-                        <label className="d-flex flex-column align-items-center gap-4 small fw-normal">
-                          <span>{c.code_domaine ?? `C${c.index + 1}`}</span>
+            <div className="d-flex gap-16 align-items-start">
+              <div className="table-responsive card flex-fill" style={{ minWidth: 0 }}>
+                <table
+                  className="table align-middle mb-0"
+                  onKeyDown={gridKeyDown}
+                  onFocus={pickEleve}
+                  onClick={pickEleve}
+                >
+                  <thead>
+                    <tr>
+                      {hasCompetences && (
+                        <th scope="col">
                           <input
                             type="checkbox"
                             className="form-check-input"
-                            aria-label={t('competences.react.saisie.select.competence', { name: competenceLabel(c) })}
-                            checked={selectedCompetences.has(c.id_competence)}
+                            aria-label={t('competences.react.saisie.select.all')}
+                            checked={allSelected}
                             disabled={locked}
-                            onChange={() => setSelectedCompetences((s) => toggle(s, c.id_competence))}
+                            onChange={() => setSelectedEleves(allSelected ? new Set() : new Set(selectable.map((e) => e.id)))}
                           />
-                        </label>
+                        </th>
+                      )}
+                      <th scope="col">{t('viescolaire.utils.student')}</th>
+                      <th scope="col" style={{ minWidth: 96 }}>
+                        {t('evaluations.grade')}
                       </th>
-                    ))}
-                    <th scope="col" style={{ minWidth: 220 }}>
-                      <div className="d-flex align-items-center gap-8">
-                        {t('viescolaire.utils.appreciation')}
-                        <Button
-                          type="button"
-                          size="sm"
-                          color="tertiary"
-                          variant="ghost"
-                          aria-pressed={apprecVisible}
-                          disabled={locked}
-                          onClick={toggleVisibility}
-                        >
-                          {t(apprecVisible ? 'evaluations.devoir.appreciation.tooltip.show' : 'evaluations.devoir.appreciation.tooltip.hide')}
-                        </Button>
-                      </div>
-                    </th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {eleves.map((eleve) => {
-                    const note = notesByEleve.get(eleve.id);
-                    const name = eleve.displayName ?? `${eleve.lastName ?? ''} ${eleve.firstName ?? ''}`.trim();
-                    const excluded = isExcluded(eleve.id);
-                    const showLevels = evaluatesCompetences(note, annotations);
-                    return (
-                      <tr key={eleve.id}>
-                        {hasCompetences && (
-                          <td>
+                      {competences.map((c) => (
+                        <th key={c.id_competence} scope="col" className="text-center" title={competenceLabel(c)}>
+                          <label className="d-flex flex-column align-items-center gap-4 small fw-normal">
+                            <span>{c.code_domaine ?? `C${c.index + 1}`}</span>
                             <input
                               type="checkbox"
                               className="form-check-input"
-                              aria-label={t('competences.react.saisie.select.student', { name })}
-                              checked={selectedEleves.has(eleve.id)}
-                              disabled={locked || excluded}
-                              onChange={() => setSelectedEleves((s) => toggle(s, eleve.id))}
+                              aria-label={t('competences.react.saisie.select.competence', { name: competenceLabel(c) })}
+                              checked={selectedCompetences.has(c.id_competence)}
+                              disabled={locked}
+                              onChange={() => setSelectedCompetences((s) => toggle(s, c.id_competence))}
                             />
-                          </td>
-                        )}
-                        <th scope="row" className={`fw-normal ${eleve.deleteDate ? 'text-decoration-line-through text-muted' : ''}`}>
-                          {name}
+                          </label>
                         </th>
-                        <td>
-                          <NoteInput
-                            label={`${t('evaluations.grade')} ${name}`}
-                            value={saisieDisplay(note, annotations)}
-                            annotations={annotations}
+                      ))}
+                      <th scope="col" style={{ minWidth: 220 }}>
+                        <div className="d-flex align-items-center gap-8">
+                          {t('viescolaire.utils.appreciation')}
+                          <Button
+                            type="button"
+                            size="sm"
+                            color="tertiary"
+                            variant="ghost"
+                            aria-pressed={apprecVisible}
                             disabled={locked}
-                            onCommit={(raw) => commitNote(eleve.id, raw)}
-                          />
-                        </td>
-                        {competences.map((c) =>
-                          showLevels ? (
-                            <td key={c.id_competence} className="text-center">
-                              <LevelButton
-                                competence={c}
-                                eleveName={name}
-                                value={grid.get(`${eleve.id}|${c.id_competence}`)?.evaluation ?? -1}
-                                levels={levels}
-                                maxValue={maxValue}
-                                disabled={locked || levels.length === 0}
-                                highlighted={selectedEleves.has(eleve.id) || selectedCompetences.has(c.id_competence)}
-                                onCommit={(value) => commitLevel(eleve.id, c.id_competence, value)}
+                            onClick={toggleVisibility}
+                          >
+                            {t(apprecVisible ? 'evaluations.devoir.appreciation.tooltip.show' : 'evaluations.devoir.appreciation.tooltip.hide')}
+                          </Button>
+                        </div>
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {eleves.map((eleve) => {
+                      const note = notesByEleve.get(eleve.id);
+                      const name = eleve.displayName ?? `${eleve.lastName ?? ''} ${eleve.firstName ?? ''}`.trim();
+                      const excluded = isExcluded(eleve.id);
+                      const showLevels = evaluatesCompetences(note, annotations);
+                      return (
+                        <tr key={eleve.id} data-nav-row data-eleve={eleve.id}>
+                          {hasCompetences && (
+                            <td>
+                              <input
+                                type="checkbox"
+                                className="form-check-input"
+                                aria-label={t('competences.react.saisie.select.student', { name })}
+                                checked={selectedEleves.has(eleve.id)}
+                                disabled={locked || excluded}
+                                onChange={() => setSelectedEleves((s) => toggle(s, eleve.id))}
                               />
                             </td>
-                          ) : (
-                            <td key={c.id_competence} />
-                          ),
-                        )}
-                        <td>
-                          <AppreciationInput
-                            label={`${t('viescolaire.utils.appreciation')} ${name}`}
-                            value={note?.appreciation ?? ''}
-                            disabled={locked}
-                            onCommit={(value) => commitAppreciation(eleve.id, value)}
-                          />
-                        </td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
+                          )}
+                          <th scope="row" className={`fw-normal ${eleve.deleteDate ? 'text-decoration-line-through text-muted' : ''}`}>
+                            {name}
+                          </th>
+                          <td>
+                            <NoteInput
+                              label={`${t('evaluations.grade')} ${name}`}
+                              value={saisieDisplay(note, annotations)}
+                              annotations={annotations}
+                              disabled={locked}
+                              onCommit={(raw) => commitNote(eleve.id, raw)}
+                            />
+                          </td>
+                          {competences.map((c) =>
+                            showLevels ? (
+                              <td key={c.id_competence} className="text-center">
+                                <LevelButton
+                                  competence={c}
+                                  eleveName={name}
+                                  value={grid.get(`${eleve.id}|${c.id_competence}`)?.evaluation ?? -1}
+                                  levels={levels}
+                                  maxValue={maxValue}
+                                  disabled={locked || levels.length === 0}
+                                  highlighted={selectedEleves.has(eleve.id) || selectedCompetences.has(c.id_competence)}
+                                  onCommit={(value) => commitLevel(eleve.id, c.id_competence, value)}
+                                />
+                              </td>
+                            ) : (
+                              <td key={c.id_competence} />
+                            ),
+                          )}
+                          <td>
+                            <AppreciationInput
+                              label={`${t('viescolaire.utils.appreciation')} ${name}`}
+                              value={note?.appreciation ?? ''}
+                              disabled={locked}
+                              onCommit={(value) => commitAppreciation(eleve.id, value)}
+                            />
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+              {fiche && classe && (
+                <div className="d-none d-lg-block" style={{ width: 280, position: 'sticky', top: 16, flexShrink: 0 }}>
+                  <FicheEleve
+                    key={fiche.id}
+                    classe={classe}
+                    eleve={fiche}
+                    periode={periodesClasse.find((p) => p.id_type === devoir.id_periode) ?? null}
+                    periodes={periodesClasse}
+                    withProportions={false}
+                  />
+                </div>
+              )}
             </div>
           )}
 
@@ -631,6 +663,7 @@ function LevelButton({
       title={`${competenceLabel(competence)} — ${label}`}
       aria-label={t('competences.react.saisie.level.of', { competence: `${eleveName}, ${competenceLabel(competence)}`, level: label })}
       disabled={disabled}
+      data-nav-cell
       onClick={() => schedule(nextLevel(shown, maxValue))}
       onKeyDown={onKeyDown}
     >
