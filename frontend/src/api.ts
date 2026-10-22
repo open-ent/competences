@@ -1127,3 +1127,19 @@ export const saveBulletinLogo = (structureId: string, path: string) => send('POS
 /** Nom et signature du chef d'établissement sur les bulletins (`setInformationsCE`). */
 export const saveBulletinCE = (structureId: string, name: string, path?: string) =>
   send('POST', '/competences/informations/bulletins/ce', { idStructure: structureId, path: path ?? '/img/illustrations/image-default.svg', name });
+
+// ── Actions sur la liste des évaluations ─────────────────────────────────────
+
+/** Supprime une évaluation (`Devoir.remove`). */
+export const deleteDevoir = (devoirId: number) => send('DELETE', `/competences/devoir?idDevoir=${devoirId}`);
+
+/** Notes et compétences évaluées des devoirs : de quoi avertir avant une suppression. */
+export const getEvaluatedDevoirs = async (devoirIds: number[]): Promise<Array<{ id: number; nbevalskill: number | null; nbevalnum: number | null }>> =>
+  devoirIds.length === 0
+    ? []
+    : ((await getJson<Array<{ id: number; nbevalskill: number | null; nbevalnum: number | null }>>(
+        `/competences/devoirs/evaluations/informations?${devoirIds.map((id) => `idDevoir=${id}`).join('&')}`,
+      )) ?? []);
+
+/** Duplique une évaluation sur d'autres classes ou groupes. */
+export const duplicateDevoir = (devoirId: number, classes: string[]) => send('POST', `/competences/devoir/${devoirId}/duplicate`, { classes });

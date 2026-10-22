@@ -3,6 +3,7 @@ import { Fragment, useEffect, useId, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Link, useNavigate } from 'react-router-dom';
 
+import { DevoirActions } from '../features/DevoirActions';
 import { ClasseSelect, PeriodeSelect, SimpleSelect, StructureSelect } from '../features/Filters';
 import {
   canOpenDevoir,
@@ -31,8 +32,7 @@ const MORE = 22;
 
 /**
  * Liste des évaluations (`display_devoirs_structure.html` + `list_view.html`) : critères, recherche
- * par nom, tableau dépliable. La sélection et ses actions (modifier, dupliquer, supprimer,
- * exporter) ne sont pas encore portées : elles restent dans la version précédente.
+ * par nom, tableau dépliable, sélection et ses actions (modifier, dupliquer, supprimer, exporter).
  */
 export function DevoirsList() {
   const { t } = useTranslation(['competences', 'viescolaire', 'common']);
@@ -43,12 +43,16 @@ export function DevoirsList() {
   const [search, setSearch] = useState<DevoirSearch>(EMPTY_SEARCH);
   const [limit, setLimit] = useState(PAGE);
   const [opened, setOpened] = useState<number | null>(null);
+  const [picked, setPicked] = useState<number[]>([]);
   const nameId = useId();
 
   // Changer d'établissement repart de critères vides (`changeEtablissement` → `initSearch`).
   useEffect(() => setSearch(EMPTY_SEARCH), [structureId]);
-  // Un critère qui change ramène en tête de liste.
-  useEffect(() => setLimit(PAGE), [search]);
+  // Un critère qui change ramène en tête de liste, et la sélection ne vaut que pour la liste affichée.
+  useEffect(() => {
+    setLimit(PAGE);
+    setPicked([]);
+  }, [search]);
 
   const { classes, devoirs, matieres, types, periodes, sousMatieres, enseignants } = data;
 
@@ -90,7 +94,9 @@ export function DevoirsList() {
   const sousMatiereName = (d: Devoir) =>
     d.id_sousmatiere === null ? '' : (sousMatieres.find((s) => s.id === Number(d.id_sousmatiere))?.libelle ?? '');
   const typeName = (id: number) => types.find((ty) => ty.id === id)?.nom ?? '';
-  const columns = chef ? 8 : 7;
+  const columns = chef ? 9 : 8;
+  const selected = rows.filter((d) => picked.includes(d.id));
+  const toggle = (id: number, on: boolean) => setPicked((l) => (on ? [...l, id] : l.filter((x) => x !== id)));
 
   return (
     <div className="d-flex flex-column gap-16">
@@ -189,6 +195,19 @@ export function DevoirsList() {
             {t('competences.react.devoirs.count', { count: rows.length })}
           </p>
 
+          {selected.length > 0 && (
+            <div className="mb-12">
+              <DevoirActions
+                selected={selected}
+                classes={classes}
+                viewer={viewer}
+                structureId={structureId}
+                onEdit={(id) => navigate(`/devoir/${id}/edit`)}
+                onDone={() => setPicked([])}
+              />
+            </div>
+          )}
+
           {rows.length === 0 ? (
             <p className="text-muted mb-0">{t('competences.react.devoirs.none.filtered')}</p>
           ) : (
@@ -196,6 +215,16 @@ export function DevoirsList() {
               <table className="table table-hover align-middle mb-0">
                 <thead>
                   <tr>
+                    <th scope="col">
+                      <input
+                        type="checkbox"
+                        className="form-check-input"
+                        aria-label={t('competences.react.devoirs.select.all')}
+                        checked={rows.length > 0 && selected.length === rows.length}
+                        onChange={(e) => setPicked(e.target.checked ? rows.map((d) => d.id) : [])}
+                        data-select-all
+                      />
+                    </th>
                     <th scope="col">{t('viescolaire.utils.date')}</th>
                     <th scope="col">{t('viescolaire.utils.class.groupe')}</th>
                     <th scope="col">{t('viescolaire.utils.name')}</th>
@@ -215,6 +244,16 @@ export function DevoirsList() {
                     return (
                       <Fragment key={d.id}>
                         <tr>
+                          <td>
+                            <input
+                              type="checkbox"
+                              className="form-check-input"
+                              aria-label={t('competences.react.devoirs.select.one', { name: d.name })}
+                              checked={picked.includes(d.id)}
+                              onChange={(e) => toggle(d.id, e.target.checked)}
+                              data-select-devoir={d.id}
+                            />
+                          </td>
                           <td className="text-nowrap">{formatDate(d.date)}</td>
                           <td>{d.nameClass}</td>
                           <td>
