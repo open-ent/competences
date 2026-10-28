@@ -709,7 +709,7 @@ public class DefaultTransitionService extends SqlCrudService implements Transiti
     private void getExternalIdInNeo4j(List<String> idClasses, Handler<Either<String, JsonArray>> handler) {
         StringBuilder query = new StringBuilder()
                 .append("MATCH (class:Class) ")
-                .append("WHERE class.id IN {idClasses} ")
+                .append("WHERE class.id IN $idClasses ")
                 .append("RETURN class.id AS idClass, class.externalId AS externalId");
 
         neo4j.execute(
@@ -755,7 +755,7 @@ public class DefaultTransitionService extends SqlCrudService implements Transiti
     }
 
     public void matchExternalId(JsonArray externalIdsClasses, final Handler<Either<String, JsonArray>> handler) {
-        String query = "MATCH (c:Class) WHERE c.externalId IN {idsClasses} return c.id as id, c.externalId as externalId";
+        String query = "MATCH (c:Class) WHERE c.externalId IN $idsClasses return c.id as id, c.externalId as externalId";
 
         JsonArray ids = new fr.wseduc.webutils.collections.JsonArray();
         for (int i = 0; i < externalIdsClasses.size(); i++) {

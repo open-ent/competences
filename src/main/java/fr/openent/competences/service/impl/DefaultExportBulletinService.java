@@ -3085,7 +3085,7 @@ public class DefaultExportBulletinService implements ExportBulletinService{
 
     public static void getExternalIdClasse(String idClasse,  Handler<Either<String, JsonObject>> handler) {
         try {
-            String query = "MATCH (c:Class {id:{idClasse}}) return c.externalId as externalId ";
+            String query = "MATCH (c:Class {id:$idClasse}) return c.externalId as externalId ";
             JsonObject params = new JsonObject().put(ID_CLASSE_KEY, idClasse);
             Neo4j.getInstance().execute(query.toString(), params, Neo4jResult.validUniqueResultHandler(handler));
         }catch (Exception e){

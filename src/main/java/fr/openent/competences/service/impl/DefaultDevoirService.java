@@ -1468,7 +1468,7 @@ public class DefaultDevoirService extends SqlCrudService implements fr.openent.c
         StringBuilder query = new StringBuilder();
 
         query.append("MATCH (u:User {profiles: ['Student']})-[:IN]-(:ProfileGroup)-[:DEPENDS]-(c:Class) ")
-                .append("WHERE c.id = {idClasse} ")
+                .append("WHERE c.id = $idClasse ")
                 .append("WITH u, c MATCH (u)--(g) WHERE g:FunctionalGroup OR g:ManualGroup OR g:ProfileGroup ")
                 .append("RETURN u.id as idEleve, COLLECT(DISTINCT g.id) AS id_groupes");
 

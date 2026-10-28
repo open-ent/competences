@@ -533,7 +533,7 @@ public class Utils {
                     // S'il existe des élèves stockés dans postgres, on va récupérer le nom des classes dans Neo
                     StringBuilder query = new StringBuilder();
                     JsonObject params = new JsonObject();
-                    query.append("MATCH (c:Class) WHERE c.id IN {idClasses} return c.id as id, c.name as name");
+                    query.append("MATCH (c:Class) WHERE c.id IN $idClasses return c.id as id, c.name as name");
                     params.put("idClasses", idClasses);
 
                     Neo4j.getInstance().execute(query.toString(), params, event -> {

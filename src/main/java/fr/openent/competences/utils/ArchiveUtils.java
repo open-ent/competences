@@ -233,7 +233,7 @@ public class ArchiveUtils {
     private static void createFolders(List<PdfFile> listBulletin, EventBus eb, Storage storage, Vertx vertx,
                                       HttpServerRequest request, UserInfos user, WorkspaceHelper workspaceHelper) {
         String idStructure = listBulletin.get(0).getId_structure();
-        String query = "MATCH (s:Structure{id:{idStructure} }) RETURN s.name as name";
+        String query = "MATCH (s:Structure{id:$idStructure }) RETURN s.name as name";
         Neo4j.getInstance().execute(query, new JsonObject().put(ID_STRUCTURE_KEY, idStructure), new Handler<Message<JsonObject>>() {
             @Override
             public void handle(Message<JsonObject> event) {

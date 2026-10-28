@@ -491,7 +491,7 @@ public class DefaultMatiereService extends SqlCrudService implements MatiereServ
         StringBuilder query = new StringBuilder();
         JsonObject params = new JsonObject();
 
-        query.append("MATCH (subject:Subject)-[sj:SUBJECT]->(s:Structure {id: {idStructure} }) ")
+        query.append("MATCH (subject:Subject)-[sj:SUBJECT]->(s:Structure {id: $idStructure }) ")
                 .append("WHERE subject.rank IS NOT NULL ")
                 .append("WITH subject.id AS idSubjects ")
                 .append("MATCH (sub:Subject) ")

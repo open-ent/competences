@@ -40,7 +40,7 @@ public class DefaultUtilsServiceTest {
     public void getMyChildreen() throws Exception{
 
         StringBuilder queryTest = new StringBuilder();
-        queryTest.append("MATCH (m:`User`{id: {id}})<-[:RELATED]-(n:`User`)-[:IN]->(g:ProfileGroup)-[:DEPENDS]->(s:`Structure`) ")
+        queryTest.append("MATCH (m:`User`{id: $id})<-[:RELATED]-(n:`User`)-[:IN]->(g:ProfileGroup)-[:DEPENDS]->(s:`Structure`) ")
                 .append("WITH n.id as id, n.displayName as displayName, n.classes as externalIdClasse, s.id as idStructure,  ")
                 .append("n.firstName as firstName, n.lastName as lastName MATCH(c:Class) WHERE c.externalId IN externalIdClasse")
                 .append(" RETURN distinct id, displayName, firstName, lastName, c.id as idClasse, idStructure");

@@ -363,9 +363,9 @@ public class DefaultUtilsService implements UtilsService {
     public void getInfoEleve(String id, Handler<Either<String, JsonObject>> result) {
         StringBuilder query = new StringBuilder();
 
-        query.append("MATCH (u:`User` {id: {id}}) ")
+        query.append("MATCH (u:`User` {id: $id}) ")
                 .append("OPTIONAL MATCH ")
-                .append("(n:`UserBook` {userid : {id}}) ")
+                .append("(n:`UserBook` {userid : $id}) ")
                 .append("OPTIONAL MATCH (c:`Class`) WHERE c.externalId in u.classes ")
                 .append("RETURN u, n, c");
         neo4j.execute(query.toString(), new JsonObject().put("id", id), Neo4jResult.validUniqueResultHandler(result));
@@ -416,7 +416,7 @@ public class DefaultUtilsService implements UtilsService {
         StringBuilder query = new StringBuilder();
         //query.append("MATCH (m:`User` {id: {id}})-[:COMMUNIQUE_DIRECT]->(n:`User`) RETURN n");
 
-        query.append("MATCH (m:`User`{id: {id}})<-[:RELATED]-(n:`User`)-[:IN]->(g:ProfileGroup)-[:DEPENDS]->(s:`Structure`) ")
+        query.append("MATCH (m:`User`{id: $id})<-[:RELATED]-(n:`User`)-[:IN]->(g:ProfileGroup)-[:DEPENDS]->(s:`Structure`) ")
                 .append("WITH n.id as id, n.displayName as displayName, n.classes as externalIdClasse, s.id as idStructure,  ")
                 .append("n.firstName as firstName, n.lastName as lastName MATCH(c:Class) WHERE c.externalId IN externalIdClasse")
                 .append(" RETURN distinct id, displayName, firstName, lastName, c.id as idClasse, idStructure");
@@ -568,7 +568,7 @@ public class DefaultUtilsService implements UtilsService {
      */
     @Override
     public void getStructure(String id, Handler<Either<String, JsonObject>> handler) {
-        String query = "match (s:`Structure`) where s.id = {id} return s";
+        String query = "match (s:`Structure`) where s.id = $id return s";
         neo4j.execute(query, new JsonObject().put("id", id), Neo4jResult.validUniqueResultHandler(handler));
     }
 
@@ -581,20 +581,20 @@ public class DefaultUtilsService implements UtilsService {
         String filter = "";
         String filterProfile = "WHERE 1=1 ";
         String optionalMatch =
-                "OPTIONAL MATCH u-[:IN]->(:ProfileGroup)-[:DEPENDS]->(class:Class)-[:BELONGS]->(s) " +
-                        "OPTIONAL MATCH u-[:RELATED]->(parent: User) " +
-                        "OPTIONAL MATCH (child: User)-[:RELATED]->u " +
-                        "OPTIONAL MATCH u-[rf:HAS_FUNCTION]->fg-[:CONTAINS_FUNCTION*0..1]->(f:Function) ";
+                "OPTIONAL MATCH (u)-[:IN]->(:ProfileGroup)-[:DEPENDS]->(class:Class)-[:BELONGS]->(s) " +
+                        "OPTIONAL MATCH (u)-[:RELATED]->(parent: User) " +
+                        "OPTIONAL MATCH (child: User)-[:RELATED]->(u) " +
+                        "OPTIONAL MATCH (u)-[rf:HAS_FUNCTION]->(fg)-[:CONTAINS_FUNCTION*0..1]->(f:Function) ";
         if (expectedProfiles != null && expectedProfiles.size() > 0) {
-            filterProfile += "AND p.name IN {expectedProfiles} ";
+            filterProfile += "AND p.name IN $expectedProfiles ";
             params.put("expectedProfiles", expectedProfiles);
         }
         if (structureId != null && !structureId.trim().isEmpty()) {
-            filter = "(n:Structure {id : {structureId}})<-[:DEPENDS]-(g:ProfileGroup)<-[:IN]-";
+            filter = "(n:Structure {id : $structureId})<-[:DEPENDS]-(g:ProfileGroup)<-[:IN]-";
             params.put("structureId", structureId);
         }
 
-        String functionMatch = "WITH u MATCH (s:Structure)<-[:DEPENDS]-(pg:ProfileGroup)-[:HAS_PROFILE]->(p:Profile), u-[:IN]->pg ";
+        String functionMatch = "WITH u MATCH (s:Structure)<-[:DEPENDS]-(pg:ProfileGroup)-[:HAS_PROFILE]->(p:Profile), (u)-[:IN]->(pg) ";
 
 
         String query =
@@ -800,7 +800,7 @@ public class DefaultUtilsService implements UtilsService {
     @Override
     public void getNameEntity(String[] name, String field, Handler<Either<String, JsonArray>> handler) {
 
-        String returning = "WHERE s.id IN {id} RETURN CASE WHEN s.name IS NULL THEN s.lastName ELSE s.name END AS name";
+        String returning = "WHERE s.id IN $id RETURN CASE WHEN s.name IS NULL THEN s.lastName ELSE s.name END AS name";
         String query = "";
         if (field.equals(ID_STRUCTURE_KEY)) {
             query = "MATCH (s:Structure) " + returning;

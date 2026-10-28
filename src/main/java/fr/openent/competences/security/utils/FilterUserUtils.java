@@ -226,9 +226,9 @@ public class FilterUserUtils {
         StringBuilder query = new StringBuilder();
         JsonObject value = new JsonObject().put("idUser", user.getUserId())
                 .put("idsClasse", idsClasse);
-        query.append(" MATCH (u:User {id : {idUser}}) ")
+        query.append(" MATCH (u:User {id : $idUser}) ")
                 .append(" OPTIONAL MATCH (c:Class) ")
-                .append(" WHERE c.id IN {idsClasse} ")
+                .append(" WHERE c.id IN $idsClasse ")
                 .append(" AND (c.externalId IN u.headTeacher OR  c.externalId IN u.headTeacherManual) ")
                 .append(" RETURN CASE WHEN c IS NULL THEN [] ELSE collect(c.id) END as idsClasse ");
 
