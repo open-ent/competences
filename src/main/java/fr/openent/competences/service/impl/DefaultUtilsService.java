@@ -604,7 +604,7 @@ public class DefaultUtilsService implements UtilsService {
                         "u.login as login, u.firstName as firstName, " +
                         "u.lastName as lastName, u.displayName as displayName, u.source as source, " +
                         "u.title as civility, " +
-                        "extract(function IN u.functions | last(split(function, \"$\"))) as aafFunctions, " +
+                        "[function IN u.functions | last(split(function, \"$\"))] as aafFunctions, " +
                         "collect(distinct {id: s.id, name: s.name}) as structures, " +
                         "collect(distinct {id: class.id, name: class.name}) as allClasses, " +
                         "collect(distinct [f.externalId, rf.scope]) as functions " +
