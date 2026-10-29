@@ -517,7 +517,7 @@ public class DefaultMatiereService extends SqlCrudService implements MatiereServ
 
             String idSubjectNeo4j = "id" + subjectNumber;
             String rankSubjectNeo4j = "rank" + subjectNumber;
-            String queryId = "{" + idSubjectNeo4j + "} ";
+            String queryId = "$" + idSubjectNeo4j + " ";
 
             // Match all subject
             params.put(idSubjectNeo4j, subject.getId());
@@ -525,7 +525,7 @@ public class DefaultMatiereService extends SqlCrudService implements MatiereServ
 
             // Set rank on subject match
             params.put(rankSubjectNeo4j, subject.getRank());
-            querySet.append(idSubjectNeo4j + ".rank = {" + rankSubjectNeo4j + "}" + comma);
+            querySet.append(idSubjectNeo4j + ".rank = $" + rankSubjectNeo4j + comma);
 
             // Return all id subject
             queryReturn.append(idSubjectNeo4j + ".id" + comma);
