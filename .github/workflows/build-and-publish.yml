@@ -38,26 +38,28 @@ jobs:
     steps:
       - uses: actions/checkout@v6
 
-      - name: Build with Node 10 via Docker
+      # node:26 (Debian) et non alpine : entcore-generic-icons est une dépendance npm en URL git,
+      # et l'alpine n'a pas git.
+      - name: Build with Node 26 via Docker
         run: |
           docker run --rm \
             -v "${{ github.workspace }}:/workspace" \
             -w /workspace \
             --user root \
-            opendigitaleducation/node:10-alpine \
+            node:26 \
             sh -c "npm install --legacy-peer-deps && node_modules/gulp/bin/gulp.js build"
-          # Ce conteneur tourne en root (l'image Node 10 en a besoin pour son install) et laisse
+          # Ce conteneur tourne en root et laisse
           # donc `src/main/resources/view/` lui appartenant. L'étape React qui suit y dépose
           # `competences-react.html` : sans cette reprise de propriété, elle échouerait sur
           # « Permission denied » APRÈS une construction Vite réussie.
           sudo chown -R "$(id -u):$(id -g)" "${{ github.workspace }}"
 
-      # [B] IHM React (vue competences-react.html) : sous-projet Vite frontend/ (Node 20),
+      # [B] IHM React (vue competences-react.html) : sous-projet Vite frontend/ (Node 26),
       # paquets prives @open-ent -> auth OPENENT_PACKAGES_TOKEN. La copie dans resources/ est
       # embarquee par l'upload frontend-assets ci-dessous (fat-mod complet).
       - uses: actions/setup-node@v7
         with:
-          node-version: '20'
+          node-version: '26'
       - uses: pnpm/action-setup@v6
         with:
           version: 10
@@ -95,7 +97,7 @@ jobs:
 
       - uses: actions/setup-java@v6
         with:
-          java-version: '21'
+          java-version: '25'
           distribution: temurin
           cache: maven
 
@@ -165,15 +167,25 @@ jobs:
           ENTCORE_OPT=""
           if [ -n "$ENTCORE_VERSION" ]; then ENTCORE_OPT="-DentCoreVersion=$ENTCORE_VERSION"; fi
           # -Dmaven.test.skip=true (pas -DskipTests) : évite la compilation des tests, qui crashe
-          # sous JDK 21 via maven-scala-plugin:2.15.2 hérité d'app-parent (testCompile scala).
+          # sous les JDK récents via maven-scala-plugin:2.15.2 hérité d'app-parent (testCompile scala).
           mvn clean package -Dmaven.test.skip=true -B $ENTCORE_OPT -DbuildNumber=${GITHUB_SHA::8} -DscmBranch=${GITHUB_REF_NAME}
         env:
           ENTCORE_VERSION: ${{ github.event.inputs.entcore_version }}
 
+      # Depuis le JDK 23, javac n'exécute plus les processeurs d'annotations trouvés sur le
+      # classpath : sans `-proc:full` (pom), le jar part sans securedaction/ ni routes/, et
+      # chaque route sécurisée répond 404 — sans aucune erreur de build.
+      - name: Verify annotation metadata
+        run: |
+          FAT_JAR=$(ls target/*-fat.jar | head -1)
+          for d in securedaction routes; do
+            unzip -Z1 "$FAT_JAR" | grep -q "^$d/" || { echo "::error::$d/ absent de $FAT_JAR"; exit 1; }
+          done
+
       - name: Run tests
         if: github.event_name == 'pull_request'
         # profil `scala` d'app-parent désactivé : maven-scala-plugin 2.15.2 ne lit pas le
-        # bytecode du JDK 21, et aucun module applicatif n'a de source Scala.
+        # bytecode des JDK récents, et aucun module applicatif n'a de source Scala.
         run: mvn test -B -P '!scala'
 
       - name: Configure Maven for GitHub Packages
